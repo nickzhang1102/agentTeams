@@ -1,0 +1,214 @@
+<template>
+  <div
+    class="agent-card"
+    :class="{ 'selected': isSelected }"
+    @click="handleClick"
+  >
+    <div class="card-header">
+      <span class="card-icon">{{ icon }}</span>
+      <h4 class="card-title">{{ agent.name }}</h4>
+    </div>
+
+    <p class="card-description">
+      {{ truncatedDescription }}
+    </p>
+
+    <div class="card-actions">
+      <el-button
+        size="small"
+        type="primary"
+        @click.stop="handleSelect"
+      >
+        选择
+      </el-button>
+      <el-button
+        size="small"
+        @click.stop="showDetail = true"
+      >
+        查看详情
+      </el-button>
+    </div>
+
+    <!-- 详情对话框 -->
+    <el-dialog
+      v-model="showDetail"
+      :title="agent.name"
+      :width="dialogWidth"
+      :fullscreen="isMobile"
+      class="agent-detail-dialog"
+      append-to-body                                                                                                                                                                
+      :modal-append-to-body="true"
+    >
+      <div class="detail-content">
+        <div class="detail-item">
+          <label>ID:</label>
+          <span>{{ agent.id }}</span>
+        </div>
+        <div class="detail-item">
+          <label>描述:</label>
+          <p>{{ agent.description || '暂无描述' }}</p>
+        </div>
+        <div class="detail-item">
+          <label>模型:</label>
+          <span>{{ agent.model || 'inherit' }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showDetail = false">关闭</el-button>
+        <el-button type="primary" @click="handleSelectFromDetail">
+          选择此 Agent
+        </el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ElMessage } from 'element-plus'
+
+const props = defineProps({
+  agent: {
+    type: Object,
+    required: true
+  },
+  icon: {
+    type: String,
+    default: '🩺'
+  },
+  isSelected: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['select'])
+
+const showDetail = ref(false)
+
+// 响应式布局
+const isMobile = ref(window.innerWidth < 768)
+const dialogWidth = computed(() => isMobile.value ? '90%' : '500px')
+
+// 监听窗口大小变化
+let resizeHandler = null
+onMounted(() => {
+  resizeHandler = () => {
+    isMobile.value = window.innerWidth < 768
+  }
+  window.addEventListener('resize', resizeHandler)
+})
+
+onUnmounted(() => {
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler)
+  }
+})
+
+const truncatedDescription = computed(() => {
+  const desc = props.agent.description || '暂无描述'
+  return desc.length > 50 ? desc.substring(0, 50) + '...' : desc
+})
+
+function handleClick() {
+  // 点击卡片不做任何操作，等待用户点击按钮
+}
+
+function handleSelect() {
+  emit('select', props.agent)
+}
+
+function handleSelectFromDetail() {
+  showDetail.value = false
+  handleSelect()
+}
+</script>
+
+<style scoped>
+.agent-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.agent-card:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  transform: translateY(-2px);
+}
+
+.agent-card.selected {
+  border-color: var(--color-primary);
+  background: rgba(37, 99, 235, 0.05);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.card-icon {
+  font-size: 24px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.card-description {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.detail-content {
+  padding: 16px 0;
+}
+
+.detail-item {
+  margin-bottom: 16px;
+}
+
+.detail-item label {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-right: 8px;
+}
+
+.detail-item p {
+  margin: 8px 0 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .agent-card {
+    padding: 12px;
+  }
+
+  .card-title {
+    font-size: 14px;
+  }
+
+  .card-description {
+    font-size: 13px;
+  }
+}
+</style>

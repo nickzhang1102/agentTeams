@@ -1,0 +1,37 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+.openharness-venv/
+venv/
+env/
+.env
+*.so
+.coverage
+htmlcov/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.python-version
+
+# React TUI frontend
+frontend/terminal/node_modules/
+
+# User data (never commit API keys or session data)
+.openharness/
+react_tui_smoke.txt
+
+# OS
+.DS_Store
+Thumbs.db
+uv.lock

@@ -1,0 +1,204 @@
+<template>
+  <div class="leader-execution-view" style="position: relative;">
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <div class="status-info">
+        <el-tag :type="getStatusType(leaderStore.leaderState)" size="small">
+          {{ getStatusText(leaderStore.leaderState) }}
+        </el-tag>
+        <span v-if="leaderStore.totalTime > 0" class="time-info">
+          耗时: {{ formatTime(leaderStore.totalTime) }}
+        </span>
+      </div>
+    </div>
+
+    <!-- 上下布局 -->
+    <div class="vertical-layout">
+      <div class="top-pane">
+        <LeaderThinking :session-id="leaderSessionId" />
+      </div>
+
+      <div class="bottom-pane" ref="bottomPaneRef">
+        <AgentStatusPanel
+          :conversation-id="conversationId"
+          :session-id="leaderSessionId"
+          :container-ref="props.containerRef"
+          @agent-scroll-target="handleAgentScrollTarget"
+        />
+      </div>
+    </div>
+
+    <!-- 最终报告 - 独立显示在面板外部 -->
+    <LeaderFinalReport
+      :conversation-id="conversationId"
+      :session-id="leaderSessionId"
+      :container-ref="props.containerRef"
+      @report-scroll-target="handleReportScrollTarget"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { useLeaderStore } from '@/stores/leader'
+import LeaderThinking from './LeaderThinking.vue'
+import AgentStatusPanel from './AgentStatusPanel.vue'
+import LeaderFinalReport from './LeaderFinalReport.vue'
+
+const props = defineProps({
+  conversationId: {
+    type: String,
+    default: ''
+  },
+  leaderSessionId: {
+    type: String,
+    default: ''
+  },
+  containerRef: {
+    type: Object,
+    default: null
+  }
+})
+
+const leaderStore = useLeaderStore()
+const bottomPaneRef = ref(null)
+const agentPanelRef = ref(null)
+const reportRef = ref(null)
+const currentScrollTarget = ref(null)
+const hasActiveAgent = ref(false)  // 用户是否主动展开了某个 Agent
+
+// 接收来自AgentStatusPanel的滚动目标（当前展开的 Agent）
+function handleAgentScrollTarget(target) {
+  agentPanelRef.value = target
+  hasActiveAgent.value = !!target  // 明确标记是否有展开的 Agent
+  
+  if (target) {
+    // Agent 优先：有展开的 Agent 时设置当前滚动目标
+    currentScrollTarget.value = target
+  } else if (reportRef.value) {
+    // Agent 收起时，切换到最终报告
+    currentScrollTarget.value = reportRef.value
+  }
+}
+
+// 接收来自LeaderFinalReport的滚动目标
+function handleReportScrollTarget(target) {
+  reportRef.value = target
+  // 只有当用户没有主动展开 Agent 时才使用最终报告
+  if (!hasActiveAgent.value) {
+    currentScrollTarget.value = target
+  }
+}
+
+// 监听 leaderSessionId 变化，加载对应的会话数据
+watch(() => props.leaderSessionId, async (newSessionId) => {
+  if (newSessionId && newSessionId !== 'undefined') {
+    // leaderStore 已经在 conversations.js 中加载了历史数据
+    // 这里只需要确保 session 数据存在
+  }
+}, { immediate: true })
+
+onMounted(() => {
+  // 滚动监听由 ScrollToTopButton 组件内部处理
+})
+
+onUnmounted(() => {
+  // 清理由 ScrollToTopButton 组件内部处理
+})
+
+function getStatusType(state) {
+  const types = {
+    'idle': 'info',
+    'assessing': 'warning',
+    'questioning': 'warning',
+    'forming_team': 'warning',
+    'monitoring': 'primary',
+    'summarizing': 'primary',
+    'completed': 'success',
+    'stopped': 'danger',
+    'failed': 'danger'
+  }
+  return types[state] || 'info'
+}
+
+function getStatusText(state) {
+  const texts = {
+    'idle': '空闲',
+    'assessing': '评估中',
+    'questioning': '提问中',
+    'forming_team': '组建团队',
+    'monitoring': '监控执行',
+    'summarizing': '汇总结果',
+    'completed': '已完成',
+    'stopped': '已停止',
+    'failed': '失败'
+  }
+  return texts[state] || state
+}
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}分${secs}秒`
+}
+</script>
+
+<style scoped>
+.leader-execution-view {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-bar {
+  padding: 8px 12px;
+  background: var(--color-card);
+  border-bottom: 1px solid #e4e7ed;
+  flex-shrink: 0;
+}
+
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.time-info {
+  color: #606266;
+  font-size: 12px;
+}
+
+.vertical-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.top-pane {
+  border-bottom: 1px solid #e4e7ed;
+  overflow: hidden;
+}
+
+.bottom-pane {
+  min-height: 150px;
+  overflow: auto;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .status-bar {
+    padding: 6px 10px;
+  }
+
+  .time-info {
+    font-size: 11px;
+  }
+
+  .top-pane {
+    min-height: 180px;
+  }
+
+  .bottom-pane {
+    min-height: 120px;
+  }
+}
+</style>

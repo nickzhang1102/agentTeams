@@ -1,0 +1,85 @@
+/* ===================================
+   Dark Mode Theme Variables
+   覆盖 theme.scss 和 design-system.scss 的颜色变量
+   =================================== */
+
+[data-theme="dark"] {
+  /* Colors - Dark Theme (覆盖 theme.scss) */
+  --color-primary: #6BB3FF;
+  --color-primary-light: #4F9CF9;
+  --color-primary-dark: #8EC5FC;
+  --color-secondary: #5A9FDB;
+  --color-cta: #F97316;
+  --color-cta-light: #FB923C;
+  --color-background: #1A1A2E;
+  --color-background-alt: #16213E;
+  --color-text-primary: #E0E0E0;
+  --color-text-secondary: #A0A0A0;
+  --color-text-muted: #6B6B6B;
+  --color-white: #1E1E1E;
+  --color-surface: rgba(30, 30, 46, 0.85);
+  --color-surface-hover: rgba(30, 30, 46, 0.95);
+
+  /* Colors - Dark Theme (覆盖 design-system.scss) */
+  --color-card: #16213E;
+  --color-hover: #1E2A42;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-text: #E0E0E0;
+
+  /* 语义色彩 - Dark */
+  --color-success: #10B981;
+  --color-success-bg: rgba(16, 185, 129, 0.15);
+  --color-warning: #F59E0B;
+  --color-warning-bg: rgba(245, 158, 11, 0.15);
+  --color-error: #EF4444;
+  --color-error-bg: rgba(239, 68, 68, 0.15);
+  --color-info: #3B82F6;
+  --color-info-bg: rgba(59, 130, 246, 0.15);
+
+  /* Glassmorphism Effects - Dark */
+  --glass-bg: rgba(30, 30, 46, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+
+  /* Shadows - Dark */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+
+  /* Element Plus Dark Variables */
+  --el-bg-color: #1A1A2E;
+  --el-bg-color-page: #16213E;
+  --el-bg-color-overlay: #1E2A42;
+  --el-text-color-primary: #E0E0E0;
+  --el-text-color-regular: #A0A0A0;
+  --el-text-color-secondary: #6B6B6B;
+  --el-text-color-placeholder: #4B4B4B;
+  --el-text-color-disabled: #3B3B3B;
+  --el-border-color: rgba(255, 255, 255, 0.1);
+  --el-border-color-light: rgba(255, 255, 255, 0.08);
+  --el-border-color-lighter: rgba(255, 255, 255, 0.06);
+  --el-border-color-extra-light: rgba(255, 255, 255, 0.04);
+  --el-border-color-dark: rgba(255, 255, 255, 0.12);
+  --el-border-color-darker: rgba(255, 255, 255, 0.14);
+  --el-fill-color: rgba(30, 30, 46, 0.8);
+  --el-fill-color-light: rgba(30, 30, 46, 0.6);
+  --el-fill-color-lighter: rgba(30, 30, 46, 0.4);
+  --el-fill-color-extra-light: rgba(30, 30, 46, 0.2);
+  --el-fill-color-dark: rgba(30, 30, 46, 0.9);
+  --el-fill-color-darker: rgba(30, 30, 46, 0.95);
+  --el-fill-color-blank: rgba(30, 30, 46, 0.8);
+  --el-box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --el-box-shadow-light: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
+  --el-box-shadow-lighter: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+  --el-box-shadow-dark: 0 12px 48px 0 rgba(0, 0, 0, 0.4);
+  --el-disabled-bg-color: rgba(30, 30, 46, 0.6);
+  --el-disabled-text-color: #3B3B3B;
+  --el-disabled-border-color: rgba(255, 255, 255, 0.06);
+  --el-overlay-color: rgba(0, 0, 0, 0.8);
+  --el-overlay-color-light: rgba(0, 0, 0, 0.7);
+  --el-overlay-color-lighter: rgba(0, 0, 0, 0.5);
+  --el-mask-color: rgba(0, 0, 0, 0.8);
+  --el-mask-color-extra-light: rgba(0, 0, 0, 0.3);
+}

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Agent Teams 是开源自部署的多智能体协作平台：Leader 智能编排、100+ 专家 Agent 并行协作、知识图谱 GraphRAG、SSE 实时流式输出，基于 FastAPI 与 LangGraph。">
+  <meta name="theme-color" content="#2563eb">
+  <meta property="og:title" content="Agent Teams | 多智能体协作平台">
+  <meta property="og:description" content="把一个复杂问题交给一支 AI 专家团队：需求评估、团队组建、并行执行、综合报告全自动编排。开源（AGPL-3.0），支持自部署。">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%234f83f7"/><stop offset="1" stop-color="%231d4ed8"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(%23g)"/><text x="32" y="44" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="700" fill="white" text-anchor="middle">A</text></svg>'>
+  <title>Agent Teams | 多智能体协作平台</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="site-nav" aria-label="主导航">
+    <a class="brand" href="#top" aria-label="Agent Teams 首页">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span>Agent Teams</span>
+    </a>
+    <div class="nav-links">
+      <a href="#capabilities">能力</a>
+      <a href="#workflow">工作流</a>
+      <a href="#deploy">部署</a>
+      <a href="#sponsor">赞助</a>
+    </div>
+    <a class="github-link" href="https://github.com/nickzhang1102/agentTeams" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1.17-.02-2.12-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.72-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.78 0c2.21-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.83 1.18 3.09 0 4.42-2.69 5.39-5.25 5.67.41.35.77 1.04.77 2.1 0 1.51-.01 2.73-.01 3.1 0 .3.21.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+      GitHub
+    </a>
+  </nav>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-bg" aria-hidden="true">
+        <i class="glow glow-one"></i>
+        <i class="glow glow-two"></i>
+        <i class="grid-lines"></i>
+        <i class="star star-one">✦</i>
+        <i class="star star-two">✦</i>
+        <i class="star star-three">✦</i>
+      </div>
+      <div class="hero-inner">
+        <p class="hero-chips" data-reveal>
+          <span class="chip chip-solid">开源 · AGPL-3.0</span>
+          <span class="chip">自部署 · 数据自持</span>
+          <span class="chip">LangGraph 编排</span>
+        </p>
+        <h1 id="hero-title" data-reveal>把难题交给一支<em>AI 专家团队</em></h1>
+        <p class="hero-lede" data-reveal>Leader 智能编排完成<em>需求评估、团队组建、并行执行与综合报告</em>，你只需提出问题。</p>
+        <div class="hero-actions" data-reveal>
+          <a class="button primary" href="https://github.com/nickzhang1102/agentTeams" target="_blank" rel="noopener noreferrer">
+            查看 GitHub 源码
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="button ghost" href="#workflow">了解工作流程</a>
+        </div>
+
+        <div class="hero-stage" data-reveal>
+          <div class="window session-demo-wrap" aria-hidden="true">
+            <span class="window-bar">
+              <i></i><i></i><i></i>
+              <span class="window-title">Agent Teams · Leader 会话演示</span>
+            </span>
+            <div class="session-demo">
+              <span class="session-query">帮我评估这个治疗方案的可行性与风险</span>
+              <span class="session-leader"><i class="pulse"></i>LEADER 正在编排 3 位专家</span>
+              <div class="expert-row">
+                <div class="expert-card">
+                  <span class="expert-head"><i class="expert-avatar">内</i><span class="expert-name">内科专家</span></span>
+                  <span class="expert-bar"><i></i></span>
+                </div>
+                <div class="expert-card">
+                  <span class="expert-head"><i class="expert-avatar">肿</i><span class="expert-name">肿瘤内科</span></span>
+                  <span class="expert-bar"><i></i></span>
+                </div>
+                <div class="expert-card">
+                  <span class="expert-head"><i class="expert-avatar">药</i><span class="expert-name">临床药学</span></span>
+                  <span class="expert-bar"><i></i></span>
+                </div>
+              </div>
+              <span class="report-line">✦ 综合报告生成中<span class="spark"><i></i><i></i><i></i></span></span>
+            </div>
+          </div>
+          <span class="float-chip float-chip-one" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.6 3.9L17.5 9.5l-3.9 1.6L12 15l-1.6-3.9L6.5 9.5l3.9-1.6z"/><path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/></svg>
+            Leader 智能编排
+          </span>
+          <span class="float-chip float-chip-two" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.7-3 2.8-4.6 5.5-4.6s4.8 1.6 5.5 4.6"/><circle cx="16.8" cy="9.5" r="2.4"/><path d="M16.4 14.6c2.2.4 3.7 1.7 4.2 4"/></svg>
+            多专家并行协作
+          </span>
+        </div>
+
+        <dl class="hero-stats" data-reveal>
+          <div class="stat">
+            <dt>领域专家 Agent</dt>
+            <dd>107</dd>
+          </div>
+          <div class="stat">
+            <dt>步自动编排</dt>
+            <dd>4<i>步闭环</i></dd>
+          </div>
+          <div class="stat">
+            <dt>数据主权</dt>
+            <dd>100<i>% 自持</i></dd>
+          </div>
+          <div class="stat">
+            <dt>开源协议</dt>
+            <dd>AGPL<i>-3.0</i></dd>
+          </div>
+        </dl>
+
+        <p class="hero-note">内置医疗领域 Agent 仅作信息整理与辅助理解，不构成医疗诊断或治疗建议。</p>
+      </div>
+    </section>
+
+    <section class="intro" id="capabilities" aria-labelledby="capability-title">
+      <div class="section-heading" data-reveal>
+        <p class="eyebrow">从问题到结论</p>
+        <h2 id="capability-title">一个平台，<em class="grad">一支团队</em></h2>
+        <p class="section-sub">六个模块覆盖「理解 — 组队 — 执行 — 沉淀」的完整闭环。</p>
+      </div>
+      <div class="capability-grid">
+        <article data-reveal>
+          <span class="capability-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m0 12v3M3 12h3m12 0h3"/><circle cx="12" cy="12" r="4.5"/></svg>
+          </span>
+          <span class="capability-index">01</span>
+          <h3>Leader 编排</h3>
+          <p>需求评估、DAG 团队组建、批次执行与结果汇总由 Leader 全程自动推进，支持人工审核介入。</p>
+        </article>
+        <article data-reveal>
+          <span class="capability-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.7-3 2.8-4.6 5.5-4.6s4.8 1.6 5.5 4.6"/><circle cx="16.8" cy="9.5" r="2.4"/><path d="M16.4 14.6c2.2.4 3.7 1.7 4.2 4"/></svg>
+          </span>
+          <span class="capability-index">02</span>
+          <h3>多智能体协作</h3>
+          <p>批次内多专家并行调用工具与知识库，执行状态实时可见，SSE 流式推送全过程。</p>
+        </article>
+        <article data-reveal>
+          <span class="capability-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <span class="capability-index">03</span>
+          <h3>100+ 专家 Agent</h3>
+          <p>医疗专科、商业角色、金融分析等领域专家开箱即用，也支持创建自己的专属 Agent。</p>
+        </article>
+        <article data-reveal>
+          <span class="capability-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.8 7.6L10.5 16m5.7-8.4L13.5 16M8.5 6h7"/></svg>
+          </span>
+          <span class="capability-index">04</span>
+          <h3>知识图谱 GraphRAG</h3>
+          <p>D3 图谱可视化、社区发现与向量检索结合，让回答有据可依，还能定位知识缺口。</p>
+        </article>
+        <article data-reveal>
+          <span class="capability-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="8.5" y="14" width="7" height="7" rx="1.5"/><path d="M6.5 10v2h11V10m-3.5 2v2"/></svg>
+          </span>
+          <span class="capability-index">05</span>
+          <h3>组合包与模板</h3>
+          <p>AgentPack 沉淀常用团队组合，工作流模板一键启动标准化流程，减少重复配置。</p>
+        </article>
+        <article data-reveal>
+          <span class="capability-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.4c0 4.4-2.9 7.6-7 8.8-4.1-1.2-7-4.4-7-8.8V5.8z"/><path d="M9 11.6l2 2 4-4.4"/></svg>
+          </span>
+          <span class="capability-index">06</span>
+          <h3>数据自主</h3>
+          <p>全部数据留在自己的 PostgreSQL 中，LLM 凭证以根密钥加密存储，部署位置由你决定。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="flow" id="workflow" aria-labelledby="workflow-title">
+      <div class="flow-heading" data-reveal>
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>一次提问的旅程</p>
+        <h2 id="workflow-title">四步编排，从需求到报告</h2>
+        <p>你只负责提出问题；Leader 负责理解它、为它组建最合适的专家团队、盯完整个执行过程，并把所有结论汇成一份可追溯的报告。</p>
+      </div>
+      <div class="flow-track" role="list">
+        <div class="flow-step" role="listitem" data-reveal>
+          <span class="flow-num">01</span>
+          <h3>需求评估</h3>
+          <p>Leader 判断任务复杂度，必要时向你追问澄清，确定评估阈值与专家范围。</p>
+          <span class="flow-tag">requirement_loop</span>
+          <div class="flow-anim" aria-hidden="true"><i></i><i></i><i></i></div>
+        </div>
+        <div class="flow-step" role="listitem" data-reveal>
+          <span class="flow-num">02</span>
+          <h3>团队组建</h3>
+          <p>按优先级规则从 100+ 专家中选人，生成 DAG 执行计划，分批安排就位。</p>
+          <span class="flow-tag">team_form_dag</span>
+          <div class="flow-anim" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="flow-step" role="listitem" data-reveal>
+          <span class="flow-num">03</span>
+          <h3>并行执行</h3>
+          <p>批次内多专家并行调用工具与知识库，SSE 实时推送思考与中间结果。</p>
+          <span class="flow-tag">batch_executor</span>
+          <div class="flow-anim" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="flow-step" role="listitem" data-reveal>
+          <span class="flow-num">04</span>
+          <h3>综合报告</h3>
+          <p>汇总各专家结论生成结构化报告，每个观点都可下钻到对应的子任务与证据。</p>
+          <span class="flow-tag">summarize</span>
+          <div class="flow-anim" aria-hidden="true"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+      <p class="flow-note">示意动画基于真实编排链路绘制；实际界面中的每一步都可以展开查看执行细节。</p>
+    </section>
+
+    <section class="deploy" id="deploy" aria-labelledby="deploy-title">
+      <div class="section-heading" data-reveal>
+        <p class="eyebrow">本地掌握数据</p>
+        <h2 id="deploy-title">三步，在自己的主机上运行</h2>
+        <p class="section-sub">提供 Docker Compose 一键部署，也支持源码方式本地开发。</p>
+      </div>
+      <div class="deploy-grid">
+        <div class="deploy-card" data-reveal>
+          <span class="deploy-num">01</span>
+          <h3>克隆并配置</h3>
+          <div class="term">
+            <div class="term-bar" aria-hidden="true">
+              <i></i><i></i><i></i>
+              <span class="term-title">terminal — clone &amp; init</span>
+              <button class="copy-btn" type="button" data-copy="git clone https://github.com/nickzhang1102/agentTeams.git&#10;cd agentTeams&#10;cp backend/.env.example backend/.env&#10;# 编辑 backend/.env：SECRET_KEY / JWT_SECRET_KEY / DATABASE_URL" aria-label="复制克隆与配置命令">
+                <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                <span class="copy-label">复制</span>
+              </button>
+            </div>
+            <pre><code>git clone https://github.com/nickzhang1102/agentTeams.git
+cd agentTeams
+cp backend/.env.example backend/.env
+# 编辑 backend/.env：
+# SECRET_KEY / JWT_SECRET_KEY / DATABASE_URL</code></pre>
+          </div>
+        </div>
+        <div class="deploy-card" data-reveal>
+          <span class="deploy-num">02</span>
+          <h3>启动服务</h3>
+          <div class="term">
+            <div class="term-bar" aria-hidden="true">
+              <i></i><i></i><i></i>
+              <span class="term-title">terminal — compose up</span>
+              <button class="copy-btn" type="button" data-copy="docker compose up -d --build" aria-label="复制启动命令">
+                <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                <span class="copy-label">复制</span>
+              </button>
+            </div>
+            <pre><code>docker compose up -d --build</code></pre>
+          </div>
+          <p class="deploy-note">包含 PostgreSQL 18、FastAPI 后端与 Nginx 前端三个服务；访问 http://localhost:8380。</p>
+        </div>
+        <div class="deploy-card" data-reveal>
+          <span class="deploy-num">03</span>
+          <h3>初始化并上线</h3>
+          <p class="deploy-note">默认账号 admin / admin123——首次登录后请立即修改密码；随后在后台「LLM 模型」添加一个 OpenAI 兼容服务即可开始使用。医疗场景请先阅读免责声明。</p>
+          <a class="arrow-link" href="https://github.com/nickzhang1102/agentTeams/blob/master/DISCLAIMER.md" target="_blank" rel="noopener noreferrer">阅读医疗免责声明
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band-wrap" aria-label="参与项目">
+      <div class="cta-band" data-reveal>
+        <div class="cta-copy">
+          <h2>在 GitHub 上参与 Agent Teams</h2>
+          <p>查看源码、提交 Issue 或改进文档——也可以搭配 OncoPath，组成「健康信息整理 + 多智能体会诊」的完整开源方案。</p>
+        </div>
+        <a class="button inverse" href="https://github.com/nickzhang1102/agentTeams" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1.17-.02-2.12-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.72-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.78 0c2.21-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.83 1.18 3.09 0 4.42-2.69 5.39-5.25 5.67.41.35.77 1.04.77 2.1 0 1.51-.01 2.73-.01 3.1 0 .3.21.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+          nickzhang1102/agentTeams
+        </a>
+      </div>
+    </section>
+
+    <section class="sponsor" id="sponsor" aria-labelledby="sponsor-title">
+      <div class="section-heading" data-reveal>
+        <p class="eyebrow">支持作者</p>
+        <h2 id="sponsor-title">请作者喝一杯咖啡</h2>
+        <p class="section-sub">如果 Agent Teams 对你有所帮助，欢迎请作者喝一杯咖啡——每一份支持都是持续维护的动力，真的很重要！</p>
+      </div>
+      <div class="sponsor-cards" data-reveal>
+        <figure class="sponsor-card">
+          <img src="sponsor/wechat.jpg" alt="微信赞赏码" loading="lazy">
+          <figcaption>💚 微信</figcaption>
+        </figure>
+        <figure class="sponsor-card">
+          <img src="sponsor/alipay.jpg" alt="支付宝收款码" loading="lazy">
+          <figcaption>💙 支付宝</figcaption>
+        </figure>
+        <p class="sponsor-star">⭐ 去 GitHub 点一个 Star，同样是对作者的支持。</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand brand-invert" href="#top">
+          <span class="brand-mark" aria-hidden="true">A</span>
+          <span>Agent Teams</span>
+        </a>
+        <p>开源自部署的多智能体协作平台。内置医疗领域 Agent 仅作辅助理解，不构成医疗诊断或治疗建议。</p>
+      </div>
+      <nav class="footer-col" aria-label="页脚页面导航">
+        <strong>页面</strong>
+        <a href="#capabilities">核心能力</a>
+        <a href="#workflow">工作流</a>
+        <a href="#deploy">自部署</a>
+        <a href="#sponsor">赞助支持</a>
+      </nav>
+      <nav class="footer-col" aria-label="页脚资源链接">
+        <strong>资源</strong>
+        <a href="https://github.com/nickzhang1102/agentTeams" target="_blank" rel="noopener noreferrer">GitHub 仓库</a>
+        <a href="https://github.com/nickzhang1102/agentTeams/blob/master/DISCLAIMER.md" target="_blank" rel="noopener noreferrer">医疗免责声明</a>
+        <a href="https://github.com/nickzhang1102/oncopath" target="_blank" rel="noopener noreferrer">OncoPath · 配套项目</a>
+        <a href="https://github.com/nickzhang1102/agentTeams/blob/master/LICENSE" target="_blank" rel="noopener noreferrer">许可证（AGPL-3.0）</a>
+      </nav>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Agent Teams · 以 AGPL-3.0 许可开源</p>
+      <p>Vue3 + FastAPI + LangGraph</p>
+    </div>
+  </footer>
+
+  <script>
+    document.documentElement.classList.add('js');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const nav = document.querySelector('.site-nav');
+    const navLinks = [...document.querySelectorAll('.nav-links a')];
+
+    window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 18), { passive: true });
+
+    /* 导航高亮当前章节 */
+    if ('IntersectionObserver' in window) {
+      const sectionLinks = new Map();
+      navLinks.forEach((link) => {
+        const hash = link.getAttribute('href');
+        const section = hash && document.querySelector(hash);
+        if (section) sectionLinks.set(section, link);
+      });
+      const activeNav = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          const link = sectionLinks.get(entry.target);
+          if (link) link.classList.toggle('active', entry.isIntersecting);
+        });
+      }, { rootMargin: '-40% 0px -52% 0px' });
+      sectionLinks.forEach((_link, section) => activeNav.observe(section));
+    }
+
+    /* 进入视口时轻量浮现 */
+    const revealTargets = document.querySelectorAll('[data-reveal]');
+    if ('IntersectionObserver' in window && !reduceMotion.matches) {
+      const revealer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            revealer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+      revealTargets.forEach((el, i) => {
+        el.style.transitionDelay = `${Math.min((i % 6) * 60, 300)}ms`;
+        revealer.observe(el);
+      });
+    } else {
+      revealTargets.forEach((el) => el.classList.add('in-view'));
+    }
+
+    /* 复制部署命令 */
+    document.querySelectorAll('.copy-btn').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const text = button.dataset.copy || '';
+        let copied = false;
+        try {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        } catch (_) {
+          const area = document.createElement('textarea');
+          area.value = text;
+          area.setAttribute('readonly', '');
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          document.body.appendChild(area);
+          area.select();
+          try { copied = document.execCommand('copy'); } catch (_) { copied = false; }
+          area.remove();
+        }
+        button.classList.add('copied');
+        const label = button.querySelector('.copy-label');
+        if (label) label.textContent = copied ? '已复制' : '请手动复制';
+        window.setTimeout(() => {
+          button.classList.remove('copied');
+          if (label) label.textContent = '复制';
+        }, 1800);
+      });
+    });
+  </script>
+</body>
+</html>

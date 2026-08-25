@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "example-stdio": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@example/mcp-server"
+      ],
+      "env": {},
+      "disabled": true
+    },
+    "example-sse": {
+      "transport": "sse",
+      "url": "http://localhost:3000/sse",
+      "disabled": true
+    },
+    "graphify": {
+      "transport": "stdio",
+      "command": "python",
+      "args": [
+        "-m",
+        "graphify.serve"
+      ],
+      "env": {},
+      "disabled": true
+    }
+  }
+}

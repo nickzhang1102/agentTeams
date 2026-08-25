@@ -1,0 +1,160 @@
+{
+  "categories": {
+    "medical": {
+      "name": "医疗专家",
+      "icon": "🩺",
+      "children": {
+        "internal": {
+          "name": "内科",
+          "agents": [
+            "cardiology-expert",
+            "respirology-expert",
+            "gastroenterology-expert",
+            "endocrinology-expert",
+            "nephrology-expert",
+            "hematology-expert",
+            "infectious-disease-expert",
+            "rheumatology-expert",
+            "neurology-expert",
+            "allergy-expert"
+          ]
+        },
+        "surgery": {
+          "name": "外科",
+          "agents": [
+            "general-surgery-expert",
+            "hepatobiliary-surgery-expert",
+            "gastrointestinal-surgery-expert",
+            "breast-surgery-expert",
+            "thyroid-surgery-expert",
+            "thoracic-surgery-expert",
+            "cardiac-surgery-expert",
+            "neurosurgery-expert",
+            "urology-expert",
+            "orthopedics-expert",
+            "plastic-surgery-expert",
+            "transplant-surgery-expert"
+          ]
+        },
+        "specialty": {
+          "name": "专科",
+          "agents": [
+            "gynecology-expert",
+            "reproductive-medicine-expert",
+            "obstetrics-expert",
+            "pediatrics-expert",
+            "ophthalmology-expert",
+            "ent-expert",
+            "dentist-expert",
+            "dermatology-expert",
+            "psychiatry-expert",
+            "rehabilitation-expert",
+            "pain-management-expert",
+            "geriatrics-expert"
+          ]
+        },
+        "other": {
+          "name": "其他",
+          "agents": [
+            "oncology-expert",
+            "radiotherapy-expert",
+            "pathology-expert",
+            "radiology-expert",
+            "laboratory-expert",
+            "nutrition-expert",
+            "tcm-expert",
+            "acupuncture-expert",
+            "tuina-expert",
+            "nursing-expert",
+            "general-practice-expert"
+          ]
+        }
+      }
+    },
+    "business": {
+      "name": "商业角色",
+      "icon": "💼",
+      "children": {
+        "management": {
+          "name": "管理层",
+          "agents": [
+            "ceo-bezos",
+            "cto-vogels",
+            "cfo-campbell",
+            "caio-ai"
+          ]
+        },
+        "product": {
+          "name": "产品",
+          "agents": [
+            "product-norman",
+            "ui-duarte",
+            "interaction-cooper"
+          ]
+        },
+        "technology": {
+          "name": "技术",
+          "agents": [
+            "fullstack-dhh",
+            "devops-hightower",
+            "qa-bach"
+          ]
+        },
+        "operations": {
+          "name": "运营",
+          "agents": [
+            "operations-pg",
+            "marketing-godin",
+            "sales-ross"
+          ]
+        },
+        "other": {
+          "name": "其他",
+          "agents": [
+            "research-thompson",
+            "critic-munger"
+          ]
+        }
+      }
+    },
+    "futures": {
+      "name": "期货公司",
+      "icon": "📈",
+      "children": {
+        "management": {
+          "name": "管理层",
+          "agents": [
+            "cro-taleb",
+            "cio-dalio"
+          ]
+        },
+        "compliance": {
+          "name": "合规风控",
+          "agents": [
+            "discipline-supervisor",
+            "compliance-gensler"
+          ]
+        },
+        "business": {
+          "name": "业务部门",
+          "agents": [
+            "wealth-morgan",
+            "branch-manager",
+            "research-manager",
+            "asset-management",
+            "quant-simons",
+            "international-leung",
+            "digital-banking",
+            "fund-operations"
+          ]
+        },
+        "subsidiary": {
+          "name": "子公司",
+          "agents": [
+            "risk-subsidiary-manager"
+          ]
+        }
+      }
+    }
+  }
+}

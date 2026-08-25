@@ -1,0 +1,121 @@
+# Agent Teams System - Docker Compose Configuration
+#
+# 使用方法：
+# 1. 创建环境变量文件：
+#    cp backend/.env.example backend/.env
+#
+# 2. 编辑 backend/.env 设置必要的环境变量：
+#    - SECRET_KEY
+#    - JWT_SECRET_KEY
+#    LLM 与 Web Search 凭证在服务启动后通过后台管理配置。
+#
+# 3. 启动服务（首次会自动执行 Alembic 迁移）：
+#    docker compose up -d
+#
+# 4. 访问应用：
+#    http://localhost:8380
+
+# Docker Compose 配置（无需 version 字段，使用 Compose V2）
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: pgvector/pgvector:pg18
+    container_name: agent-teams-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agent_teams
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      # 仅绑定回环地址：默认口令的数据库不应暴露到局域网/公网
+      - "127.0.0.1:5433:5432"
+    networks:
+      - agent-teams-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI 后端
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+    container_name: agent-teams-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/agent_teams
+      - APP_ENV=production
+      - AGENTS_DIR=/app/agents
+      # 知识库数据必须落在挂载卷内（./backend/data:/app/data），否则容器重建即丢
+      - KNOWLEDGE_DATA_DIR=/app/data/knowledge
+      # RSA 密钥目录落在挂载卷内，容器重建后密钥保持稳定
+      - RSA_KEYS_DIR=/app/data/keys
+      - PADDLE_OCR_API_URL=${PADDLE_OCR_API_URL:-}
+      - AGENTTEAMS_EMBED_FRAME_ANCESTORS=${AGENTTEAMS_EMBED_FRAME_ANCESTORS:-'self'}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./backend/data:/app/data
+      - ./.claude/agents:/app/agents:ro
+      # 本地 OpenHarness 开发：取消注释下一行，路径改为你的本地 OpenHarness 项目目录
+      # - /d/dev/OpenHarness:/app/openharness:ro
+    ports:
+      # 仅绑定回环地址：后端应经 nginx 访问，不应绕过反代暴露到局域网/公网
+      - "127.0.0.1:5000:5000"
+    networks:
+      - agent-teams-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; r=urllib.request.urlopen('http://localhost:5000/health'); exit(0 if r.status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Vue3 前端
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+    container_name: agent-teams-frontend
+    environment:
+      AGENTTEAMS_EMBED_FRAME_ANCESTORS: ${AGENTTEAMS_EMBED_FRAME_ANCESTORS:-'self'}
+    restart: unless-stopped
+    ports:
+      - "8380:80"
+    networks:
+      - agent-teams-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# 数据卷
+volumes:
+  postgres_data:
+    driver: local
+
+# 网络
+networks:
+  agent-teams-network:
+    driver: bridge

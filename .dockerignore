@@ -1,0 +1,85 @@
+# Docker 忽略文件（根目录）
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# 文档
+docs/
+*.md
+LICENSE
+
+# Python（** 前缀匹配任意层级，防止吞入 backend/venv 等本地构建产物）
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/*.so
+.Python
+**/venv/
+**/env/
+ENV/
+.venv
+**/*.egg-info/
+dist/
+build/
+
+# Node
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 测试和覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 环境变量（** 前缀必须保留：backend 构建上下文是仓库根，
+# 无通配符的 .env 只匹配根目录，会把 backend/.env 里的真实密钥打进镜像层）
+**/.env
+**/.env.local
+**/.env.*.local
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 数据目录
+backend/data/
+backend/instance/
+frontend/dist/
+
+# 日志文件
+*.log
+logs/
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# 其他
+.claude/
+!.claude/agents/
+# 上一行恢复 agents 目录本身后，其中的 md 仍被前部 *.md 规则排除，
+# 需显式取回，否则纯镜像部署（无 compose volume 挂载）会丢失全部 Agent 配置
+!.claude/agents/**/*.md
+design-system/
+
+# 但不要忽略 OpenHarness 源码（需要复制到容器）
+!OpenHarness/

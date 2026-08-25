@@ -1,0 +1,122 @@
+<template>
+  <el-select
+    :model-value="modelValue"
+    :placeholder="loading ? '加载中...' : '选择模型'"
+    :loading="loading"
+    :disabled="disabled"
+    clearable
+    filterable
+    size="small"
+    class="model-selector"
+    @update:model-value="handleChange"
+  >
+    <el-option
+      v-for="model in models"
+      :key="model.id"
+      :label="model.name"
+      :value="model.id"
+    >
+      <div class="model-option">
+        <span class="model-name">{{ model.name }}</span>
+        <span class="model-context">{{ formatContextLimit(model.context_limit) }}</span>
+      </div>
+    </el-option>
+    <template #prefix>
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 1v6m0 6v6m-7-3.5l5.2-3m1.6-1L17 2.5M5 2.5l5.2 3m1.6 1l5.2 3"/>
+      </svg>
+    </template>
+  </el-select>
+</template>
+
+<script setup>
+import { ref, onMounted, watch } from 'vue'
+import api from '@/utils/api'
+
+const props = defineProps({
+  modelValue: {
+    type: String,
+    default: ''
+  },
+  conversationId: {
+    type: [String, Number],
+    default: null
+  },
+  disabled: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['update:modelValue', 'change'])
+
+const models = ref([])
+const loading = ref(false)
+const defaultModel = ref('')
+
+// 格式化上下文窗口大小
+function formatContextLimit(tokens) {
+  if (tokens >= 1000000) {
+    return `${(tokens / 1000000).toFixed(0)}M`
+  }
+  return `${(tokens / 1000).toFixed(0)}K`
+}
+
+// 获取可用模型列表
+async function fetchModels() {
+  loading.value = true
+  try {
+    const response = await api.get('/api/agents/models')
+    models.value = response.data.models || []
+    defaultModel.value = response.data.default || ''
+  } catch (error) {
+    console.error('获取模型列表失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 选择变更
+function handleChange(value) {
+  emit('update:modelValue', value)
+  emit('change', value)
+}
+
+// 加载时获取模型列表
+onMounted(() => {
+  fetchModels()
+})
+</script>
+
+<style scoped>
+.model-selector {
+  min-width: 140px;
+  max-width: 200px;
+}
+
+.model-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.model-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.model-context {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+</style>

@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  backend-tests:
+    name: 后端测试（pytest）
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        # pgvector 扩展镜像（知识图谱向量检索依赖），基于 PostgreSQL 18
+        image: pgvector/pgvector:pg18
+        env:
+          POSTGRES_DB: agent_teams_test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # conftest.py 要求库名以 _test 结尾（fail-safe 校验，防止误清生产库），
+      # 测试 teardown 会 TRUNCATE 全表，绝不指向主库
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/agent_teams_test
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/agent_teams_test
+      # CI 专用固定占位密钥（64 位十六进制），仅用于通过启动强校验，非生产凭证
+      SECRET_KEY: 3f9a1c7e5b2d8f40a6c1e93b7d25f804c6a2e81b5d39f7402e6c8a14bd37f952
+      JWT_SECRET_KEY: 8d41f2b69c05ae73d184f0c2a95b6e3817d04fc62ba89e5317c26fd0ab43e587
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: 安装依赖
+        run: |
+          pip install -r requirements.txt
+          # OpenHarness 是仓库内嵌本地包（backend/services/harness、services/mcp 等
+          # 模块级导入），Docker 镜像内为 pip install -e 安装，CI 同样必须安装
+          pip install -e ../OpenHarness
+
+      - name: 运行后端测试
+        # 测试库已由 postgres service 容器通过 POSTGRES_DB 直接创建，无需额外建库步骤；
+        # 不使用 --cov，避免覆盖率插件兼容问题
+        run: pytest tests/ -x -q
+
+  frontend-tests:
+    name: 前端测试（vitest）
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 运行前端单元测试
+        # 显式限定 src 目录：避免误收 e2e/tests 下的 Playwright 用例
+        # （vitest.config.js include 已限定 src/**，此处双保险）
+        run: npx vitest run src
+
+  # Playwright E2E 未纳入 CI：
+  # 需要完整运行环境（后端服务 + PostgreSQL + 已配置的 LLM API Key），
+  # 在 CI 中无法提供真实 LLM 服务，用例无法稳定执行，请按 README 本地搭建后手动运行。

@@ -1,0 +1,62 @@
+# FastAPI 核心（替换 Flask）
+fastapi>=0.121.0
+uvicorn[standard]>=0.30.0
+slowapi>=0.1.9
+
+# Werkzeug（独立依赖，用于密码哈希与文件名清洗）
+Werkzeug>=3.0.0
+
+# Alembic（数据库迁移）
+alembic>=1.13.0
+
+# 数据库
+SQLAlchemy>=2.0.31
+psycopg[binary]>=3.2.0
+pgvector>=0.4.2
+
+# 工具库
+python-dotenv==1.2.2
+tzdata>=2025.2
+requests>=2.32.3
+pyyaml==6.0.3
+
+# RSA加密
+cryptography>=42.0.0
+
+# Pydantic EmailStr 支持
+email-validator>=2.0.0
+
+# JWT（FastAPI 认证）
+python-jose[cryptography]>=3.3.0
+
+# LLM API（支持 OpenAI 兼容 API，如豆包/火山引擎）
+openai>=1.0.0
+instructor>=1.15.0
+
+# 生产服务器
+gunicorn==22.0.0
+
+# 开发工具
+pytest==9.0.3
+pytest-cov==4.1.0
+# pytest-asyncio 0.21.x 仅实际兼容 pytest 7.x，与 pytest 8+ 不兼容（venv 中即为坏组合）；
+# 1.x 起声明支持 pytest>=8.2 且无上限。待本地 pip 安装 + pytest 实测通过后，再钉死为精确版本
+pytest-asyncio>=1.0.0,<2.0.0
+pytest-mock==3.15.1
+
+# 文档解析
+pypdf>=5.0.0           # PDF 读写
+pymupdf>=1.27.2        # PDF 解析
+python-docx>=1.1.0     # Word 文档
+openpyxl>=3.1.0        # Excel 文档
+python-pptx>=0.6.21    # PowerPoint 文档
+
+# OpenHarness Integration
+# openharness-ai==0.1.9  # Docker 中从项目根目录复制源码安装（见 Dockerfile）
+
+# LangGraph 编排层
+langgraph==1.2.2
+langchain-core==1.4.0
+
+# HTTP 客户端（MCP SSE 路径异步化）
+httpx>=0.27.0

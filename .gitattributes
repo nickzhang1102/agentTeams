@@ -1,0 +1,4 @@
+# 行尾统一治理：shell 脚本必须 LF（容器内 bash 无法执行 CRLF 文件）
+*.sh text eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf

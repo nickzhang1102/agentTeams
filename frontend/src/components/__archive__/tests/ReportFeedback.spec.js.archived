@@ -1,0 +1,369 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import ElementPlus, { ElButton, ElInput, ElMessage } from 'element-plus'
+import ReportFeedback from '@/components/ReportFeedback.vue'
+import { useLeaderStore } from '@/stores/leader'
+
+// Mock ElMessage
+vi.mock('element-plus', async () => {
+  const actual = await vi.importActual('element-plus')
+  return {
+    ...actual,
+    ElMessage: {
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn()
+    }
+  }
+})
+
+describe('ReportFeedback.vue', () => {
+  let wrapper
+  let leaderStore
+
+  function mountReportFeedback(options = {}) {
+    return mount(ReportFeedback, {
+      ...options,
+      global: {
+        ...(options.global || {}),
+        plugins: [ElementPlus]
+      }
+    })
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    leaderStore = useLeaderStore()
+    vi.spyOn(leaderStore, 'submitReportRating').mockResolvedValue({
+      rating: 5,
+      comment: null,
+      updated_at: new Date().toISOString()
+    })
+  })
+
+  afterEach(() => {
+    if (wrapper) {
+      wrapper.unmount()
+    }
+    vi.clearAllMocks()
+  })
+
+  // ==================== 渲染测试 ====================
+
+  it('正常渲染评分按钮', () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1
+      }
+    })
+
+    const buttons = wrapper.findAllComponents(ElButton)
+    expect(buttons.length).toBeGreaterThanOrEqual(2)
+    expect(wrapper.text()).toContain('点赞')
+    expect(wrapper.text()).toContain('差评')
+  })
+
+  it('初始评分为好评时高亮点赞按钮', () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1,
+        initialRating: 5
+      }
+    })
+
+    expect(wrapper.text()).toContain('已点赞')
+  })
+
+  it('初始评分为差评时高亮差评按钮', () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1,
+        initialRating: 1
+      }
+    })
+
+    expect(wrapper.text()).toContain('已差评')
+  })
+
+  it('有初始评论时显示评论内容', () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'final_report',
+        targetId: 2,
+        initialRating: 5,
+        initialComment: '这是测试评论'
+      }
+    })
+
+    expect(wrapper.text()).toContain('这是测试评论')
+  })
+
+  // ==================== 评分交互测试 ====================
+
+  it('点击点赞按钮提交评分', async () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1
+      }
+    })
+
+    const likeButton = wrapper.findAll('button')[0]
+    await likeButton.trigger('click')
+
+    expect(leaderStore.submitReportRating).toHaveBeenCalledWith(
+      'agent_result',
+      1,
+      5,
+      null
+    )
+    expect(ElMessage.success).toHaveBeenCalledWith('评分成功')
+  })
+
+  it('点击差评按钮提交评分', async () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'final_report',
+        targetId: 2
+      }
+    })
+
+    const dislikeButton = wrapper.findAll('button')[1]
+    await dislikeButton.trigger('click')
+
+    expect(leaderStore.submitReportRating).toHaveBeenCalledWith(
+      'final_report',
+      2,
+      1,
+      null
+    )
+  })
+
+  it('点击已评分按钮打开评论框', async () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1,
+        initialRating: 5
+      }
+    })
+
+    const likeButton = wrapper.findAll('button')[0]
+    await likeButton.trigger('click')
+
+    // 评论框应该显示
+    await wrapper.vm.$nextTick()
+    const textarea = wrapper.findComponent(ElInput)
+    expect(textarea.exists()).toBe(true)
+  })
+
+  it('切换评分立即提交', async () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1,
+        initialRating: 5,
+        initialComment: '之前的评论'
+      }
+    })
+
+    const dislikeButton = wrapper.findAll('button')[1]
+    await dislikeButton.trigger('click')
+
+    // 应该用之前的评论提交新评分
+    expect(leaderStore.submitReportRating).toHaveBeenCalledWith(
+      'agent_result',
+      1,
+      1,
+      '之前的评论'
+    )
+  })
+
+  // ==================== 评论交互测试 ====================
+
+  it('提交评论', async () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1,
+        initialRating: 5
+      }
+    })
+
+    // 打开评论框
+    const likeButton = wrapper.findAll('button')[0]
+    await likeButton.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    // 输入评论
+    const textarea = wrapper.findComponent(ElInput)
+    await textarea.setValue('这是新的评论')
+
+    // 提交评论
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('提交'))
+    await submitButton.trigger('click')
+
+    expect(leaderStore.submitReportRating).toHaveBeenCalledWith(
+      'agent_result',
+      1,
+      5,
+      '这是新的评论'
+    )
+    expect(ElMessage.success).toHaveBeenCalledWith('评论已提交')
+  })
+
+  it('取消评论恢复原内容', async () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1,
+        initialRating: 5,
+        initialComment: '原评论'
+      }
+    })
+
+    // 打开评论框
+    const likeButton = wrapper.findAll('button')[0]
+    await likeButton.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    // 修改评论
+    const textarea = wrapper.findComponent(ElInput)
+    await textarea.setValue('临时修改')
+
+    // 取消
+    const cancelButton = wrapper.findAll('button').find(btn => btn.text().includes('取消'))
+    await cancelButton.trigger('click')
+
+    // 评论框应关闭，内容恢复
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.commentText).toBe('原评论')
+  })
+
+  it('未评分时提交评论提示警告', async () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1
+      }
+    })
+
+    // 强制打开评论框（实际不应发生）
+    wrapper.vm.showCommentBox = true
+    await wrapper.vm.$nextTick()
+
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('提交'))
+    await submitButton.trigger('click')
+
+    expect(ElMessage.warning).toHaveBeenCalledWith('请先评分')
+  })
+
+  // ==================== 错误处理测试 ====================
+
+  it('评分失败显示错误', async () => {
+    leaderStore.submitReportRating.mockRejectedValue({
+      response: { data: { detail: '网络错误' } }
+    })
+
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1
+      }
+    })
+
+    const likeButton = wrapper.findAll('button')[0]
+    await likeButton.trigger('click')
+
+    await wrapper.vm.$nextTick()
+    expect(ElMessage.error).toHaveBeenCalledWith('网络错误')
+  })
+
+  it('提交评论失败显示错误', async () => {
+    leaderStore.submitReportRating
+      .mockResolvedValueOnce({ rating: 5 }) // 第一次评分成功
+      .mockRejectedValueOnce({ response: { data: { detail: '评论过长' } } }) // 提交评论失败
+
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1
+      }
+    })
+
+    // 先评分
+    const likeButton = wrapper.findAll('button')[0]
+    await likeButton.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    // 再打开评论框
+    await likeButton.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    // 提交评论
+    const textarea = wrapper.findComponent(ElInput)
+    await textarea.setValue('A'.repeat(2001)) // 超长评论
+
+    const submitButton = wrapper.findAll('button').find(btn => btn.text().includes('提交'))
+    await submitButton.trigger('click')
+
+    await wrapper.vm.$nextTick()
+    expect(ElMessage.error).toHaveBeenCalled()
+  })
+
+  // ==================== Props 变化测试 ====================
+
+  it('Props 变化时更新评分状态', async () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1,
+        initialRating: null
+      }
+    })
+
+    expect(wrapper.text()).toContain('点赞')
+
+    // 更新 props（模拟历史会话切换）
+    await wrapper.setProps({
+      initialRating: 5,
+      initialComment: '历史评论'
+    })
+
+    expect(wrapper.text()).toContain('已点赞')
+    expect(wrapper.text()).toContain('历史评论')
+  })
+
+  // ==================== 校验测试 ====================
+
+  it('targetType 必须为合法值', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'invalid_type',
+        targetId: 1
+      }
+    })
+
+    expect(warnSpy.mock.calls[0]?.[0]).toContain(
+      'Invalid prop: custom validator check failed for prop "targetType"'
+    )
+    warnSpy.mockRestore()
+  })
+
+  it('targetId 必须为数字', () => {
+    wrapper = mountReportFeedback({
+      props: {
+        targetType: 'agent_result',
+        targetId: 1
+      }
+    })
+
+    expect(wrapper.props('targetId')).toBe(1)
+  })
+})

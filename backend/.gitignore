@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Flask
+instance/
+.webassets-cache
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# 环境变量
+.env
+
+# 文件存储
+data/files/*
+data/workspace/*
+!data/files/.gitkeep
+!data/workspace/.gitkeep
+
+# 日志
+logs/*
+!logs/.gitkeep
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+keys/
+
+memory/
+data/
+# RSA密钥（不应提交到版本控制）

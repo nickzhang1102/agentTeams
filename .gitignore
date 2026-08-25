@@ -1,0 +1,45 @@
+/.playwright-mcp
+/.worktrees
+/data
+/tmp
+/node_modules
+/agentTeams-full.tar.gz
+
+# 注释中文化检查用一次性脚本
+/_check_comments.py
+/_check_docstrings.py
+
+# 工作区状态目录
+/.jspace/
+
+# 内部治理与规划文档（不随开源公开）
+/.codestable/
+/.zcf/
+/docs/superpowers/
+/docs/plans/
+# 内部安全审计报告（含未修复漏洞细节，公开等同攻击路线图）
+/docs/review/
+
+# 内部过程文档（修复记录/阶段复盘/内部方案，工作区保留不入库）
+/backend/docs/
+/docs/fixes/
+/docs/2026-03-22.md
+/docs/20260322_*.md
+/docs/AI工程化改进方案.md
+/docs/agent-report-quality-analysis.md
+/docs/assessment-details-fix.md
+/docs/fix-leader-mode-cannot-close.md
+/docs/leader-team-forming-display.md
+/docs/migration-summary.md
+/docs/phase3-completion.md
+/docs/test-report-2026-03-05.md
+
+# 二进制归档（内容不可审计，不入库）
+*.7z
+*.tar.gz
+
+# 本地工具与缓存产物
+/.pytest_cache/
+/.codegraph/
+**/.claude/skills/websh/state/
+**/.codestable/

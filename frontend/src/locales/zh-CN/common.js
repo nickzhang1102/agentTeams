@@ -1,0 +1,30 @@
+export default {
+  locale: {
+    selector: '选择语言',
+    saveFailed: '语言偏好保存失败，当前设备仍会保持此设置。',
+  },
+  common: {
+    actions: {
+      cancel: '取消',
+    },
+    lists: {
+      separator: '、',
+    },
+    theme: {
+      light: '亮色模式',
+      dark: '暗色模式',
+      auto: '跟随系统',
+      selector: '选择主题',
+    },
+    templatePicker: {
+      title: '选择团队方案',
+      system: '系统',
+      custom: '自建',
+      fastMode: '快速模式',
+      noDescription: '暂无描述',
+      pack: '组合包 #{id}',
+      usageCount: '已用 {count} 次',
+      empty: '暂无团队方案',
+    },
+  },
+}

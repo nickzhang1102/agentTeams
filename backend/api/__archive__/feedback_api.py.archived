@@ -1,0 +1,306 @@
+"""
+Feedback API - Leader 报告评分与统计
+
+# DEPRECATED (2026-06-16): 前端已移除反馈按钮
+# 保留 API 和数据表以保存历史数据，但前端不再使用此功能。
+# 相关组件已归档至 frontend/src/components/__archive__/
+
+提供三类端点：
+1. Agent 报告评分：POST /leader/agent-results/{id}/rating
+2. 最终报告评分：POST /leader/final-reports/{id}/rating
+3. Admin 反馈统计：GET /admin/feedback/stats
+
+约束：
+- 每用户每目标一条评分（覆盖更新）
+- 必须本人会话才可评分
+- Agent 报告必须有 content
+- rating 仅允许 1 或 5
+"""
+from datetime import datetime, timedelta, timezone
+from typing import Optional, Literal
+from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
+from database import get_db
+from models import (
+    User, LeaderReportRating, LeaderAgentResult, LeaderFinalReport,
+    Conversation
+)
+from api.auth import get_current_user
+
+
+router = APIRouter(prefix="/api", tags=["feedback"])
+
+
+# ==================== Pydantic 模型 ====================
+
+class RatingRequest(BaseModel):
+    """评分请求体"""
+    rating: Literal[1, 5] = Field(..., description="评分：1=差评，5=好评")
+    comment: Optional[str] = Field(None, max_length=2000, description="可选文字反馈")
+
+    @field_validator('comment')
+    @classmethod
+    def validate_comment(cls, v):
+        if v is not None and len(v.strip()) == 0:
+            return None
+        return v
+
+
+class RatingResponse(BaseModel):
+    """评分响应"""
+    id: int
+    target_type: str
+    target_id: int
+    leader_session_id: int
+    conversation_id: int
+    user_id: int
+    rating: int
+    comment: Optional[str]
+    created_at: str
+    updated_at: str
+
+
+class FeedbackStatsResponse(BaseModel):
+    """反馈统计响应"""
+    period_days: int
+    total_ratings: int
+    agent_result_stats: dict
+    final_report_stats: dict
+    recent_comments: list
+
+
+# ==================== Agent 报告评分 ====================
+
+@router.post("/leader/agent-results/{agent_result_id}/rating", response_model=RatingResponse)
+def rate_agent_result(
+    agent_result_id: int,
+    req: RatingRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    评价 Agent 报告
+
+    校验：
+    - Agent 结果存在且有内容
+    - 当前用户拥有该会话
+    """
+    # 查 Agent 结果
+    agent_result = db.query(LeaderAgentResult).filter_by(id=agent_result_id).first()
+    if not agent_result:
+        raise HTTPException(status_code=404, detail="Agent 报告不存在")
+
+    # 校验有内容
+    if not agent_result.content or len(agent_result.content.strip()) == 0:
+        raise HTTPException(status_code=400, detail="Agent 报告无内容，无法评分")
+
+    # 校验权限：用户拥有该 conversation
+    conversation = db.query(Conversation).filter_by(
+        id=agent_result.conversation_id,
+        user_id=current_user.id
+    ).first()
+    if not conversation:
+        raise HTTPException(status_code=403, detail="无权评价此 Agent 报告")
+
+    # 查或建评分记录
+    rating_record = db.query(LeaderReportRating).filter_by(
+        user_id=current_user.id,
+        target_type='agent_result',
+        target_id=agent_result_id
+    ).first()
+
+    if rating_record:
+        # 覆盖更新
+        rating_record.rating = req.rating
+        rating_record.comment = req.comment
+        rating_record.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    else:
+        # 新建
+        rating_record = LeaderReportRating(
+            target_type='agent_result',
+            target_id=agent_result_id,
+            leader_session_id=agent_result.leader_session_id,
+            conversation_id=agent_result.conversation_id,
+            user_id=current_user.id,
+            rating=req.rating,
+            comment=req.comment
+        )
+        db.add(rating_record)
+
+    db.commit()
+    db.refresh(rating_record)
+
+    return RatingResponse(
+        id=rating_record.id,
+        target_type=rating_record.target_type,
+        target_id=rating_record.target_id,
+        leader_session_id=rating_record.leader_session_id,
+        conversation_id=rating_record.conversation_id,
+        user_id=rating_record.user_id,
+        rating=rating_record.rating,
+        comment=rating_record.comment,
+        created_at=rating_record.created_at.isoformat() + 'Z',
+        updated_at=rating_record.updated_at.isoformat() + 'Z'
+    )
+
+
+# ==================== 最终报告评分 ====================
+
+@router.post("/leader/final-reports/{final_report_id}/rating", response_model=RatingResponse)
+def rate_final_report(
+    final_report_id: int,
+    req: RatingRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    评价最终报告
+
+    校验：
+    - 最终报告存在
+    - 当前用户拥有该会话
+    """
+    # 查最终报告
+    final_report = db.query(LeaderFinalReport).filter_by(id=final_report_id).first()
+    if not final_report:
+        raise HTTPException(status_code=404, detail="最终报告不存在")
+
+    # 校验权限：用户拥有该 conversation
+    conversation = db.query(Conversation).filter_by(
+        id=final_report.conversation_id,
+        user_id=current_user.id
+    ).first()
+    if not conversation:
+        raise HTTPException(status_code=403, detail="无权评价此最终报告")
+
+    # 查或建评分记录
+    rating_record = db.query(LeaderReportRating).filter_by(
+        user_id=current_user.id,
+        target_type='final_report',
+        target_id=final_report_id
+    ).first()
+
+    if rating_record:
+        # 覆盖更新
+        rating_record.rating = req.rating
+        rating_record.comment = req.comment
+        rating_record.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    else:
+        # 新建
+        rating_record = LeaderReportRating(
+            target_type='final_report',
+            target_id=final_report_id,
+            leader_session_id=final_report.leader_session_id,
+            conversation_id=final_report.conversation_id,
+            user_id=current_user.id,
+            rating=req.rating,
+            comment=req.comment
+        )
+        db.add(rating_record)
+
+    db.commit()
+    db.refresh(rating_record)
+
+    return RatingResponse(
+        id=rating_record.id,
+        target_type=rating_record.target_type,
+        target_id=rating_record.target_id,
+        leader_session_id=rating_record.leader_session_id,
+        conversation_id=rating_record.conversation_id,
+        user_id=rating_record.user_id,
+        rating=rating_record.rating,
+        comment=rating_record.comment,
+        created_at=rating_record.created_at.isoformat() + 'Z',
+        updated_at=rating_record.updated_at.isoformat() + 'Z'
+    )
+
+
+# ==================== Admin 反馈统计 ====================
+
+@router.get("/admin/feedback/stats", response_model=FeedbackStatsResponse)
+def get_feedback_stats(
+    period: str = Query('7d', pattern=r'^\d+d$', description="统计周期，如 7d、30d"),
+    target_type: str = Query('all', pattern=r'^(all|agent_result|final_report)$'),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    获取反馈统计
+
+    权限：仅管理员
+    参数：
+    - period: 7d/30d/90d
+    - target_type: all/agent_result/final_report
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+
+    # 解析周期
+    days = int(period.replace('d', ''))
+    start_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
+
+    # 构建查询
+    query = db.query(LeaderReportRating).filter(
+        LeaderReportRating.created_at >= start_date
+    )
+    if target_type != 'all':
+        query = query.filter(LeaderReportRating.target_type == target_type)
+
+    # 总量
+    total_ratings = query.count()
+
+    # Agent 报告统计
+    agent_query = query.filter(LeaderReportRating.target_type == 'agent_result')
+    agent_total = agent_query.count()
+    agent_likes = agent_query.filter(LeaderReportRating.rating == 5).count()
+    agent_dislikes = agent_query.filter(LeaderReportRating.rating == 1).count()
+    agent_like_rate = round(agent_likes / agent_total * 100, 2) if agent_total > 0 else 0
+
+    agent_result_stats = {
+        'total': agent_total,
+        'likes': agent_likes,
+        'dislikes': agent_dislikes,
+        'like_rate': agent_like_rate
+    }
+
+    # 最终报告统计
+    final_query = query.filter(LeaderReportRating.target_type == 'final_report')
+    final_total = final_query.count()
+    final_likes = final_query.filter(LeaderReportRating.rating == 5).count()
+    final_dislikes = final_query.filter(LeaderReportRating.rating == 1).count()
+    final_like_rate = round(final_likes / final_total * 100, 2) if final_total > 0 else 0
+
+    final_report_stats = {
+        'total': final_total,
+        'likes': final_likes,
+        'dislikes': final_dislikes,
+        'like_rate': final_like_rate
+    }
+
+    # 最新评论（10 条）
+    recent_comments_query = query.filter(
+        LeaderReportRating.comment.isnot(None)
+    ).order_by(desc(LeaderReportRating.created_at)).limit(10)
+
+    recent_comments = [
+        {
+            'id': r.id,
+            'target_type': r.target_type,
+            'target_id': r.target_id,
+            'rating': r.rating,
+            'comment': r.comment,
+            'created_at': r.created_at.isoformat() + 'Z'
+        }
+        for r in recent_comments_query.all()
+    ]
+
+    return FeedbackStatsResponse(
+        period_days=days,
+        total_ratings=total_ratings,
+        agent_result_stats=agent_result_stats,
+        final_report_stats=final_report_stats,
+        recent_comments=recent_comments
+    )
