@@ -435,3 +435,44 @@ class TestClientSingleton:
         assert conns[0]["server_name"] == "test-sse"
         assert conns[0]["type"] == "sse"
         assert conns[0]["tools_count"] == 1
+
+
+class TestMcpProcessEnvAllowlist:
+    """MCP 子进程环境白名单：后端密钥不得透传给 MCP server"""
+
+    def test_secrets_are_filtered_and_allowlist_passes(self, monkeypatch):
+        from services.mcp.mcp_client import _build_mcp_process_env
+
+        monkeypatch.setenv('SECRET_KEY', 'top-secret-value')
+        monkeypatch.setenv('JWT_SECRET_KEY', 'jwt-secret-value')
+        monkeypatch.setenv('DATABASE_URL', 'postgresql://user:pass@host/db')
+        monkeypatch.setenv('PATH', '/custom/bin')
+
+        env = _build_mcp_process_env()
+
+        assert 'SECRET_KEY' not in env
+        assert 'JWT_SECRET_KEY' not in env
+        assert 'DATABASE_URL' not in env
+        assert env.get('PATH') == '/custom/bin'
+
+    def test_passthrough_extension_is_honored(self, monkeypatch):
+        from services.mcp.mcp_client import _build_mcp_process_env
+
+        monkeypatch.setenv('MY_TOOL_TOKEN', 'tool-secret')
+        monkeypatch.setenv('MCP_ENV_PASSTHROUGH', ' MY_TOOL_TOKEN , ANOTHER_VAR ')
+
+        env = _build_mcp_process_env()
+
+        assert env.get('MY_TOOL_TOKEN') == 'tool-secret'
+        # 声明了但未设置的变量不产生空项
+        assert 'ANOTHER_VAR' not in env
+
+    def test_server_custom_env_overrides_result(self):
+        """connect_stdio 的自定义 env 参数仍应叠加在白名单结果之上"""
+        from services.mcp.mcp_client import _build_mcp_process_env
+
+        base = _build_mcp_process_env()
+        custom = {'MY_SERVER_FLAG': '1'}
+        merged = {**base, **custom}
+
+        assert merged['MY_SERVER_FLAG'] == '1'

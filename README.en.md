@@ -27,6 +27,8 @@ English | [简体中文](./README.md)
 - ✅ **Leader Agent** - Requirement assessment, team formation (DAG orchestration), result synthesis
 - ✅ **AgentPack / workflow templates** - Agent bundle management and one-click launch templates
 
+> Note: Some business/finance agents are named after public figures (e.g. "CEO (Bezos mental model)"). This is solely a tribute to and borrowing of their publicly shared methodologies and thinking styles — no affiliation, endorsement, or representation is implied. Medical agents are named after clinical departments; see the [medical disclaimer](#️-medical-disclaimer) for their intended scope.
+
 ### UI enhancements
 - ✅ **Dark mode** - One-click theme switching
 - ✅ **Export** - PDF / image export
@@ -335,7 +337,11 @@ cat backup.sql | docker compose exec -T postgres psql -U postgres agent_teams
 
 ## 📄 License
 
-This project is open source under the [AGPL-3.0](./LICENSE) license. The bundled [OpenHarness](./OpenHarness/) framework is MIT licensed.
+This project is available under a **dual-license** model:
+
+- **Open source**: licensed under [AGPL-3.0](./LICENSE). Offering this software to others as a network service (SaaS) also triggers the AGPL-3.0 source-sharing obligation.
+- **Commercial license**: organizations that cannot comply with AGPL-3.0 (closed-source commercial use, private SaaS deployments, etc.) may contact the maintainer for a commercial license. <!-- TODO: add commercial licensing contact -->
+- The bundled [OpenHarness](./OpenHarness/) framework is MIT licensed. External contributions require signing a CLA to sustain the dual-license model — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## ⚕️ Medical disclaimer
 

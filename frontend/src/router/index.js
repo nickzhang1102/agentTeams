@@ -21,6 +21,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/disclaimer',
+    name: 'Disclaimer',
+    component: () => import('@/views/DisclaimerView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/knowledge',
     name: 'Knowledge',
     component: () => import('@/views/KnowledgePage.vue'),

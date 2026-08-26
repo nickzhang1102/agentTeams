@@ -230,6 +230,9 @@ class HarnessToolRegistry:
             exec_metadata = dict(metadata) if metadata else {}
             if timeout:
                 exec_metadata['timeout'] = timeout
+            # 服务端集成场景强制把文件写入/编辑工具限制在工作目录内，
+            # 防止 Agent 在无沙箱部署下覆盖宿主任意文件（见 SECURITY.md 工具执行边界）
+            exec_metadata['restrict_to_cwd'] = True
             context = ToolExecutionContext(
                 cwd=Path(self.workspace_dir),
                 metadata=exec_metadata

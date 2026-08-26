@@ -71,6 +71,13 @@
           </div>
         </el-scrollbar>
       </div>
+
+      <!-- 底部：医疗免责声明入口 -->
+      <div class="sidebar-footer">
+        <router-link to="/disclaimer" class="disclaimer-entry">
+          {{ t('common.disclaimerTitle') }}
+        </router-link>
+      </div>
     </div>
 
     <TemplateQuickPicker
@@ -466,15 +473,26 @@ onMounted(() => {
   }
 }
 
-/* 底部：主题切换按钮 */
+/* 底部：免责声明入口 */
 .sidebar-footer {
-  padding: 12px;
+  padding: 10px 12px;
   border-top: 1px solid var(--color-border, #e5e7eb);
   display: flex;
   justify-content: center;
   align-items: center;
   background: var(--color-card, #ffffff);
   flex-shrink: 0;
+}
+
+.disclaimer-entry {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--color-text-secondary, #64748b);
+  text-decoration: none;
+}
+
+.disclaimer-entry:hover {
+  color: var(--color-primary, #2563eb);
+  text-decoration: underline;
 }
 
 .sidebar.collapsed .sidebar-footer {

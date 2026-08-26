@@ -25,7 +25,7 @@
 - **密钥启动强校验**：`SECRET_KEY` 与 `JWT_SECRET_KEY` 未设置或长度不足时后端拒绝启动（见 `backend/config.py`）；数据库凭证使用 `SECRET_KEY` 加密存储，轮换根密钥需按 README 说明先解密再重加密。
 - **认证与令牌**：JWT 认证（python-jose），`User.token_version` 支持服务端令牌吊销；密码策略要求长度与字符类别，含账户锁定机制。
 - **上传白名单**：文件上传经类型白名单校验与文件名清洗（`backend/services/file_storage.py`、`test_upload_validator.py`）。
-- **工具执行边界**：Leader 编排的 Agent 可按其工具白名单调用文件读写、命令执行等 OpenHarness 工具，这类工具与后端服务同用户运行、不具备容器级隔离。生产环境若无需此类能力，请设置 `OPENHARNESS_TOOLS_ENABLED=false` 关闭；启用时应将服务部署在独立容器/主机中并限制其文件系统与网络可见范围。
+- **工具执行边界**：Leader 编排的 Agent 可按其工具白名单调用文件读写、命令执行等 OpenHarness 工具，这类工具与后端服务同用户运行、不具备容器级隔离。shell 类工具（`bash`/`edit_file`）默认不分配给任何 Agent，仅当显式设置 `OPENHARNESS_SHELL_TOOLS_ENABLED=true` 后才进入技术类 Agent 白名单；文件写入/编辑类工具经服务端集成调用时强制限制在工作目录内（`restrict_to_cwd`），但 `read_file` 与 shell 工具仍可访问进程可见的文件系统。生产环境若无需此类能力，请设置 `OPENHARNESS_TOOLS_ENABLED=false` 关闭；启用时应将服务部署在独立容器/主机中并限制其文件系统与网络可见范围。
 - **审计日志**：登录安全事件与集成访问操作记录于 `security_logs` 表（`SecurityLog` 模型），管理后台可查。
 
 ## 医疗数据特别提示

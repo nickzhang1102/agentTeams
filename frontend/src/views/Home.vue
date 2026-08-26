@@ -221,15 +221,15 @@
 
           <!-- Agent Teams 项目引导入口 -->
           <a
-            class="quick-access-card oncopath-card"
+            class="quick-access-card partner-card"
             href="https://github.com/nickzhang1102/agentTeams"
             target="_blank"
             rel="noopener noreferrer"
           >
             <div class="card-icon">⚕</div>
             <div class="card-content">
-              <h3 class="card-title">{{ t('home.oncopathCard.title') }}</h3>
-              <p class="card-desc">{{ t('home.oncopathCard.description') }}</p>
+              <h3 class="card-title">{{ t('home.partnerCard.title') }}</h3>
+              <p class="card-desc">{{ t('home.partnerCard.description') }}</p>
             </div>
             <div class="card-arrow">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -350,7 +350,7 @@
     </footer>
 
     <!-- Agent Teams 项目首次引导 -->
-    <OncopathOnboardingGuide v-model:show="showOncopathGuide" />
+    <PartnerProjectGuide v-model:show="showPartnerGuide" />
 
     <!-- 团队方案快选 -->
     <TemplateQuickPicker
@@ -427,7 +427,7 @@ import dayjs from 'dayjs'
 import TemplateQuickPicker from '@/components/TemplateQuickPicker.vue'
 import LanguageSelector from '@/components/LanguageSelector.vue'
 import UserMenuDropdown from '@/components/UserMenuDropdown.vue'
-import OncopathOnboardingGuide, { ONCOPATH_GUIDE_SEEN_KEY } from '@/components/OncopathOnboardingGuide.vue'
+import PartnerProjectGuide, { PARTNER_GUIDE_SEEN_KEY } from '@/components/PartnerProjectGuide.vue'
 import { catalogLabel } from '@/utils/catalog'
 
 const router = useRouter()
@@ -458,7 +458,7 @@ const modelDropdownStyle = ref({})
 const selectedTemplate = ref(null)
 const showTemplatePicker = ref(false)
 const showConfigOnboarding = ref(false)
-const showOncopathGuide = ref(false)
+const showPartnerGuide = ref(false)
 const appVersion = ref('')
 const showBeginnerHelp = ref(false)
 const helpExpanded = ref(false)
@@ -901,8 +901,8 @@ onMounted(async () => {
       localStorage.setItem('agent-teams.project-onboarding-seen', '1')
     }
     // 首次访问时展示 Agent Teams 项目引导
-    if (!localStorage.getItem(ONCOPATH_GUIDE_SEEN_KEY)) {
-      showOncopathGuide.value = true
+    if (!localStorage.getItem(PARTNER_GUIDE_SEEN_KEY)) {
+      showPartnerGuide.value = true
     }
   }
 
@@ -1799,7 +1799,7 @@ function onModelChange(val) {
 }
 
 /* ===== Agent Teams 引导入口卡片 ===== */
-.oncopath-card {
+.partner-card {
   text-decoration: none;
 
   .card-icon {

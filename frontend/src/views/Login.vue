@@ -78,7 +78,10 @@
 
     <!-- Footer -->
     <div class="login-footer">
-      <p>© 2026 Agent Teams</p>
+      <p>
+        © 2026 Agent Teams ·
+        <router-link to="/disclaimer" class="disclaimer-link">{{ t('common.disclaimerTitle') }}</router-link>
+      </p>
     </div>
   </div>
 </template>
@@ -366,6 +369,16 @@ const handleLogin = async () => {
   text-align: center;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+.disclaimer-link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.disclaimer-link:hover {
+  color: var(--color-primary, #2563eb);
+  text-decoration: underline;
 }
 
 /* Responsive */

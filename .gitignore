@@ -43,3 +43,9 @@
 /.codegraph/
 **/.claude/skills/websh/state/
 **/.codestable/
+
+# backend 子目录的本地 Claude 配置与重复技能（含 bypassPermissions 危险默认，不随开源发布）
+/backend/.claude/
+
+# 内部知识整理稿（不随开源发布，本地保留）
+"/docs/多agent协作与调用工具.md"

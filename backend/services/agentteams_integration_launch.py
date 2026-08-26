@@ -864,6 +864,10 @@ def renew_agentteams_embed_token(
     query = db_session.query(AgentTeamsLaunch).filter_by(source=AGENTTEAMS_SOURCE)
     if integration_context is not None:
         query = query.filter_by(integration_client_key=integration_context.client_key)
+    else:
+        # 遗留端点只能为遗留客户端自己的启动记录续签；
+        # 共享适配器客户端的前缀化 ID 不得通过内部键猜测换取嵌入令牌。
+        query = query.filter_by(integration_client_key=AGENTTEAMS_SOURCE)
     normalized_request_id = str(request_id or '').strip()
     if normalized_request_id:
         query = query.filter_by(request_id=normalized_request_id)

@@ -46,8 +46,8 @@
 
 | 容器名 | 镜像 | 端口映射 | 职责 |
 |--------|------|----------|------|
-| `agent-teams-postgres` | `postgres:18-alpine` | 5432:5432 | 数据库 |
-| `agent-teams-backend` | 自构建 | 5000:5000 | FastAPI API |
+| `agent-teams-postgres` | `pgvector/pgvector:pg18` | 127.0.0.1:5433->5432 | 数据库（含 pgvector 向量扩展） |
+| `agent-teams-backend` | 自构建 | 127.0.0.1:5000->5000 | FastAPI API |
 | `agent-teams-frontend` | 自构建 | 8380:80 | Nginx + Vue3 SPA |
 
 ---
@@ -384,7 +384,7 @@ rm OpenHarness.tar.gz
 **NAS 特定注意事项**：
 
 - **持久化路径**：确保数据目录在 `/volume1`（群晖/威联通）或 `/mnt/pool1`（TrueNAS）下，避免系统重启丢失
-- **端口冲突**：检查 5432/5000/8380 是否被占用，如冲突修改 `docker-compose.yml` 端口映射
+- **端口冲突**：检查 5433/5000/8380 是否被占用（PostgreSQL 宿主侧映射为 `127.0.0.1:5433`），如冲突修改 `docker-compose.yml` 端口映射
 - **内存限制**：部分 NAS 内存有限（如 4GB），可修改 `docker-compose.yml` 添加资源限制：
   ```yaml
   services:
@@ -520,8 +520,8 @@ docker compose ps
 
 ```
 NAME                     STATUS                  PORTS
-agent-teams-postgres     Up (healthy)            0.0.0.0:5432->5432/tcp
-agent-teams-backend      Up (healthy)            0.0.0.0:5000->5000/tcp
+agent-teams-postgres     Up (healthy)            127.0.0.1:5433->5432/tcp
+agent-teams-backend      Up (healthy)            127.0.0.1:5000->5000/tcp
 agent-teams-frontend     Up (healthy)            0.0.0.0:8380->80/tcp
 ```
 

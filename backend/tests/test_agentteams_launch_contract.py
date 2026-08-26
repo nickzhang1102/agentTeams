@@ -577,6 +577,68 @@ def test_shared_agentteams_adapter_cannot_cross_client_status_or_renew_by_extern
     assert cross_renew.json()['detail']['error'] == 'agentteams_launch_not_found'
 
 
+def test_legacy_integration_key_cannot_renew_shared_adapter_launch(client, monkeypatch):
+    """遗留密钥不得为共享适配器客户端的启动记录换取嵌入令牌。"""
+    monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
+    session = TestSessionLocal()
+    try:
+        service_account = _prepare_service_account(session)
+        session.add(IntegrationClient(
+            client_key='tenant-a',
+            adapter_key='agentteams',
+            display_name='tenant-a',
+            credential_hash='sha256:' + hashlib.sha256(b'tenant-a-key').hexdigest(),
+            service_account_id=service_account.id,
+            enabled=True,
+            capabilities_json={'launch': True, 'status_query': True, 'reconcile': True, 'renew_access': True},
+        ))
+        session.commit()
+    finally:
+        session.close()
+
+    launched = client.post(
+        '/api/integrations/v1/tenant-a/consultation-launches',
+        json={'conversation_ref': 'legacy-cross-conversation', 'message': 'tenant a'},
+        headers={'X-Integration-Key': 'tenant-a-key', 'X-Request-Id': 'legacy-cross-1'},
+    )
+    assert launched.status_code == 200
+
+    # 遗留密钥按 request_id 与外部会话引用两条匹配路径都必须被隔离。
+    by_request = client.post(
+        '/api/integrations/agentteams/embed-sessions/renew',
+        json={'source_conversation_id': 'legacy-cross-conversation', 'request_id': 'tenant-a:legacy-cross-1'},
+        headers={'X-Integration-Key': 'test-integration-key'},
+    )
+    assert by_request.status_code == 404
+    assert by_request.json()['detail']['error'] == 'agentteams_launch_not_found'
+
+    by_conversation = client.post(
+        '/api/integrations/agentteams/embed-sessions/renew',
+        json={'source_conversation_id': 'legacy-cross-conversation'},
+        headers={'X-Integration-Key': 'test-integration-key'},
+    )
+    assert by_conversation.status_code == 404
+    assert by_conversation.json()['detail']['error'] == 'agentteams_launch_not_found'
+
+    # 正向回归：遗留密钥仍可续签自身命名空间内的启动记录。
+    legacy_launched = client.post(
+        '/api/integrations/agentteams/consultation-launches',
+        json=_payload(),
+        headers={'X-Integration-Key': 'test-integration-key', 'X-Request-Id': 'legacy-own-1'},
+    )
+    assert legacy_launched.status_code == 200
+
+    legacy_renewed = client.post(
+        '/api/integrations/agentteams/embed-sessions/renew',
+        json={
+            'source_conversation_id': _payload()['source_conversation_id'],
+            'request_id': 'legacy-own-1',
+        },
+        headers={'X-Integration-Key': 'test-integration-key'},
+    )
+    assert legacy_renewed.status_code == 200
+
+
 def test_generic_launch_accepts_long_request_id_for_shared_adapter_client(client, monkeypatch):
     """外部契约内的长 request-id 不得因 client 命名空间前缀被误拒。"""
     monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)

@@ -7,6 +7,7 @@ MCP 客户端
 - connect_stdio 使用命令白名单校验
 - 仅允许 node, npx, python, uvx 等安全命令
 - 阻止 shell 元字符和路径遍历
+- 子进程环境按白名单继承（_MCP_ENV_ALLOWLIST），不透传后端密钥
 
 异步说明（MCP-2 修复）：
 - SSE 路径：connect_sse / _send_sse_request 使用 httpx.AsyncClient，
@@ -45,6 +46,24 @@ BLOCKED_CHARS: Set[str] = {
     ';', '|', '&', '$', '`', '\\', '\n', '\r',
     '>', '<', '(', ')', '{', '}',
 }
+
+# MCP 子进程环境变量白名单：仅传递运行所必需的系统变量，避免把
+# DATABASE_URL / SECRET_KEY / JWT_SECRET_KEY 等后端密钥经进程环境泄漏给
+# MCP server（含 npx -y 拉取的第三方包）。额外放行项用 MCP_ENV_PASSTHROUGH
+# 环境变量（逗号分隔）显式声明。
+_MCP_ENV_ALLOWLIST: Set[str] = {
+    'PATH', 'PATHEXT', 'HOME', 'USERPROFILE',
+    'APPDATA', 'LOCALAPPDATA', 'PROGRAMFILES', 'SYSTEMROOT', 'COMSPEC',
+    'LANG', 'LC_ALL', 'TMP', 'TEMP', 'TMPDIR',
+}
+
+
+def _build_mcp_process_env() -> Dict[str, str]:
+    """构建 MCP 子进程环境：白名单系统变量 + MCP_ENV_PASSTHROUGH 显式扩展。"""
+    allow = set(_MCP_ENV_ALLOWLIST)
+    extra = os.environ.get('MCP_ENV_PASSTHROUGH', '')
+    allow.update(key.strip() for key in extra.split(',') if key.strip())
+    return {key: value for key, value in os.environ.items() if key in allow}
 
 
 def validate_mcp_command(command: str, args: List[str]) -> tuple[bool, str]:
@@ -144,8 +163,9 @@ class McpClient:
                 logger.warning(f"MCP command blocked: {error_msg} (server={server_name})")
                 return False
 
-            # 准备环境变量
-            process_env = os.environ.copy()
+            # 准备环境变量：仅白名单系统变量 + server 自定义配置，
+            # 防止后端密钥经进程环境泄漏给 MCP server（见 SECURITY.md）
+            process_env = _build_mcp_process_env()
             if env:
                 process_env.update(env)
             

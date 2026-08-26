@@ -4,6 +4,8 @@ export default {
     saveFailed: '语言偏好保存失败，当前设备仍会保持此设置。',
   },
   common: {
+    disclaimerTitle: '医疗 AI 免责声明',
+    backToLogin: '返回登录',
     actions: {
       cancel: '取消',
     },

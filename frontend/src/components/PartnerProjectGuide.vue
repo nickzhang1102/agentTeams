@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
     <Transition name="guide-fade">
-      <div v-if="visible" class="oncopath-guide-mask" @click.self="handleClose">
-        <div class="oncopath-guide-card">
+      <div v-if="visible" class="partner-guide-mask" @click.self="handleClose">
+        <div class="partner-guide-card">
           <!-- 步骤指示器 -->
           <div class="guide-steps">
             <span
@@ -11,26 +11,26 @@
               :class="['step-dot', { active: currentStep === i }]"
             />
             <button class="guide-skip" type="button" @click="handleClose">
-              {{ t('home.oncopathGuide.skip') }}
+              {{ t('home.partnerGuide.skip') }}
             </button>
           </div>
 
           <!-- 步骤一：介绍 Agent Teams 项目 -->
           <div v-if="currentStep === 0" class="guide-step-body">
             <div class="hero-icon">⚕</div>
-            <h2 class="guide-title">{{ t('home.oncopathGuide.step1Title') }}</h2>
-            <p class="guide-desc">{{ t('home.oncopathGuide.step1Desc') }}</p>
+            <h2 class="guide-title">{{ t('home.partnerGuide.step1Title') }}</h2>
+            <p class="guide-desc">{{ t('home.partnerGuide.step1Desc') }}</p>
             <div class="feature-row">
-              <div class="feature-chip">✚ {{ t('home.oncopathGuide.featureData') }}</div>
-              <div class="feature-chip">✎ {{ t('home.oncopathGuide.featurePrompt') }}</div>
-              <div class="feature-chip">⟲ {{ t('home.oncopathGuide.featureEmbed') }}</div>
+              <div class="feature-chip">✚ {{ t('home.partnerGuide.featureData') }}</div>
+              <div class="feature-chip">✎ {{ t('home.partnerGuide.featurePrompt') }}</div>
+              <div class="feature-chip">⟲ {{ t('home.partnerGuide.featureEmbed') }}</div>
             </div>
           </div>
 
           <!-- 步骤二：集成后协作效果示意 -->
           <div v-else class="guide-step-body">
-            <h2 class="guide-title">{{ t('home.oncopathGuide.step2Title') }}</h2>
-            <p class="guide-desc">{{ t('home.oncopathGuide.step2Desc') }}</p>
+            <h2 class="guide-title">{{ t('home.partnerGuide.step2Title') }}</h2>
+            <p class="guide-desc">{{ t('home.partnerGuide.step2Desc') }}</p>
 
             <div class="demo-stage" aria-hidden="true">
               <!-- Agent Teams 整理的会诊材料 -->
@@ -52,25 +52,25 @@
               </div>
               <div class="flow-line down up" />
               <!-- 综合会诊报告回传嵌入 -->
-              <div class="report-card">{{ t('home.oncopathGuide.reportChip') }}</div>
+              <div class="report-card">{{ t('home.partnerGuide.reportChip') }}</div>
             </div>
 
             <el-button
               type="primary"
               size="large"
               class="guide-cta"
-              @click="openOncopathRepo"
-            >{{ t('home.oncopathGuide.cta') }} ↗</el-button>
+              @click="openPartnerRepo"
+            >{{ t('home.partnerGuide.cta') }} ↗</el-button>
           </div>
 
           <!-- 底部操作 -->
           <div class="guide-actions">
             <el-button v-if="currentStep > 0" plain @click="currentStep--">
-              {{ t('home.oncopathGuide.prev') }}
+              {{ t('home.partnerGuide.prev') }}
             </el-button>
             <span class="action-spacer" />
             <el-button type="primary" round @click="nextStep">
-              {{ currentStep < stepCount - 1 ? t('home.oncopathGuide.next') : t('home.oncopathGuide.done') }}
+              {{ currentStep < stepCount - 1 ? t('home.partnerGuide.next') : t('home.partnerGuide.done') }}
             </el-button>
           </div>
         </div>
@@ -81,14 +81,14 @@
 
 <script>
 // 首次引导已读标记；宿主页面据此判断是否自动弹出
-export const ONCOPATH_GUIDE_SEEN_KEY = 'agent-teams.oncopath-guide-seen'
+export const PARTNER_GUIDE_SEEN_KEY = 'agent-teams.partner-guide-seen'
 </script>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-const ONCOPATH_REPO_URL = 'https://github.com/nickzhang1102/oncopath'
+const PARTNER_REPO_URL = 'https://github.com/nickzhang1102/oncopath'
 
 const props = defineProps({
   show: {
@@ -109,17 +109,17 @@ const visible = computed({
   set: (value) => emit('update:show', value),
 })
 
-// 示意内容：会诊材料与专科专家，与 oncopath × agentTeams 真实集成业务一致
+// 示意内容：会诊材料与专科专家，与 OncoPath × Agent Teams 真实集成业务一致
 const materials = computed(() => [
-  t('home.oncopathGuide.materialLab'),
-  t('home.oncopathGuide.materialExam'),
-  t('home.oncopathGuide.materialPathology'),
+  t('home.partnerGuide.materialLab'),
+  t('home.partnerGuide.materialExam'),
+  t('home.partnerGuide.materialPathology'),
 ])
 
 const expertLabels = computed(() => [
-  t('home.oncopathGuide.expertOncology'),
-  t('home.oncopathGuide.expertImaging'),
-  t('home.oncopathGuide.expertPathology'),
+  t('home.partnerGuide.expertOncology'),
+  t('home.partnerGuide.expertImaging'),
+  t('home.partnerGuide.expertPathology'),
 ])
 
 watch(() => props.show, (show) => {
@@ -136,20 +136,20 @@ function nextStep() {
 
 function handleClose() {
   try {
-    localStorage.setItem(ONCOPATH_GUIDE_SEEN_KEY, '1')
+    localStorage.setItem(PARTNER_GUIDE_SEEN_KEY, '1')
   } catch {
     // localStorage 不可用时静默跳过：仅影响下次不再自动弹出
   }
   visible.value = false
 }
 
-function openOncopathRepo() {
-  window.open(ONCOPATH_REPO_URL, '_blank', 'noopener,noreferrer')
+function openPartnerRepo() {
+  window.open(PARTNER_REPO_URL, '_blank', 'noopener,noreferrer')
 }
 </script>
 
 <style scoped>
-.oncopath-guide-mask {
+.partner-guide-mask {
   position: fixed;
   inset: 0;
   z-index: 2100;
@@ -162,7 +162,7 @@ function openOncopathRepo() {
   -webkit-backdrop-filter: blur(6px);
 }
 
-.oncopath-guide-card {
+.partner-guide-card {
   width: min(92vw, 480px);
   max-height: 86vh;
   overflow-y: auto;

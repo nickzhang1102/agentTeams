@@ -284,7 +284,11 @@ class HarnessCoordinator:
         if any(keyword in agent_lower for keyword in MEDICAL_KEYWORDS):
             base_tools = ["read_file", "write_file", "grep", "glob", "web_search"] + knowledge_tool
         elif any(keyword in agent_lower for keyword in TECHNICAL_KEYWORDS):
-            base_tools = ["read_file", "write_file", "edit_file", "grep", "glob", "bash", "web_search"] + knowledge_tool
+            # shell 类工具默认不分配：与后端同用户运行、无容器隔离，
+            # 显式开启 OPENHARNESS_SHELL_TOOLS_ENABLED 后才进入技术类白名单（见 SECURITY.md）。
+            from config import Config
+            shell_tools = ["edit_file", "bash"] if getattr(Config, 'OPENHARNESS_SHELL_TOOLS_ENABLED', False) else []
+            base_tools = ["read_file", "write_file"] + shell_tools + ["grep", "glob", "web_search"] + knowledge_tool
         else:
             # Default: business/other agents get standard tool set
             base_tools = ["read_file", "write_file", "grep", "glob", "web_search"] + knowledge_tool

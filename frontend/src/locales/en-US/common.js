@@ -4,6 +4,8 @@ export default {
     saveFailed: 'Your language preference could not be saved. This device will keep the current setting.',
   },
   common: {
+    disclaimerTitle: 'Medical AI Disclaimer',
+    backToLogin: 'Back to login',
     actions: {
       cancel: 'Cancel',
     },

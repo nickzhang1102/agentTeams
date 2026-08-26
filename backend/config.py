@@ -155,6 +155,10 @@ class Config:
     OPENHARNESS_VERSION = '0.1.9'
     OPENHARNESS_ENABLED = os.environ.get('OPENHARNESS_ENABLED', 'true').lower() == 'true'
     OPENHARNESS_TOOLS_ENABLED = os.environ.get('OPENHARNESS_TOOLS_ENABLED', 'true').lower() == 'true'
+    # shell 类工具（bash/edit_file）默认不分配给任何 Agent；显式开启后才进入技术类白名单。
+    # 这类工具与后端服务同用户运行、不具备容器级隔离，默认关闭以缩小
+    # LLM 可控内容驱动宿主命令执行的暴露面（见 SECURITY.md「工具执行边界」）。
+    OPENHARNESS_SHELL_TOOLS_ENABLED = os.environ.get('OPENHARNESS_SHELL_TOOLS_ENABLED', 'false').lower() == 'true'
     OPENHARNESS_WORKSPACE = WORKSPACE_DIR  # 向后兼容别名（废弃，请使用 WORKSPACE_DIR）
     OPENHARNESS_TOOLS_TIMEOUT = int(os.environ.get('OPENHARNESS_TOOLS_TIMEOUT', '300'))
 

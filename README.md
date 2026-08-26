@@ -27,6 +27,8 @@
 - ✅ **Leader Agent** - 需求评估、团队组建（DAG 编排）、结果汇总
 - ✅ **AgentPack / 工作流模板** - Agent 组合包管理与一键启动模板
 
+> 注：部分商业/金融类 Agent 以公开人物命名（如「CEO（贝佐斯思维模型）」），仅为对其公开方法论与思想风格的致敬与借鉴，与本人无任何关联，不代表其观点或背书；医疗类 Agent 均以科室角色命名，其输出定位见[医疗免责声明](#️-医疗免责声明)。
+
 ### 界面增强
 - ✅ **暗色主题** - 一键切换深浅色
 - ✅ **导出功能** - PDF/图片导出
@@ -332,7 +334,11 @@ cat backup.sql | docker compose exec -T postgres psql -U postgres agent_teams
 
 ## 📄 许可证
 
-本项目基于 [AGPL-3.0](./LICENSE) 协议开源。内嵌的 [OpenHarness](./OpenHarness/) 框架采用 MIT 协议。
+本项目采用 **双许可** 模式：
+
+- **开源使用**：基于 [AGPL-3.0](./LICENSE) 协议开源。通过网络服务（SaaS）方式向他人提供本软件时，同样需要按 AGPL-3.0 开放源码。
+- **商业许可**：不希望受 AGPL-3.0 义务约束（如闭源商用、私有化 SaaS 部署）的组织可联系作者获取商业授权。<!-- TODO: 在此补充商业许可联系方式 -->
+- 内嵌的 [OpenHarness](./OpenHarness/) 框架采用 MIT 协议；接受外部贡献要求签署 CLA 以维持双许可模式，详见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 ## ⚕️ 医疗免责声明
 
@@ -348,10 +354,7 @@ cat backup.sql | docker compose exec -T postgres psql -U postgres agent_teams
 
 如果 Agent Teams 对你有所帮助，欢迎请作者喝一杯咖啡 ☕
 
-**每一份支持都是作者持续维护的动力，真的很重要！**
+<!-- 赞赏渠道占位：请作者自行补充打码后的收款码或 GitHub Sponsors 等平台链接，
+     避免在公开仓库直接暴露含个人身份信息的原始收款码 -->
 
-| 💚 微信 | 💙 支付宝 |
-| :---: | :---: |
-| ![微信赞赏码](website/sponsor/wechat.jpg) | ![支付宝收款码](website/sponsor/alipay.jpg) |
-
-也欢迎点一个 ⭐ Star，让更多有需要的人看到这个项目。
+**每一份支持都是作者持续维护的动力，真的很重要！** 也欢迎点一个 ⭐ Star，让更多有需要的人看到这个项目。

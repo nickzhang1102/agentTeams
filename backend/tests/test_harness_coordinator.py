@@ -85,8 +85,10 @@ This agent has no frontmatter.
         assert "glob" in tools
         assert "web_search" in tools
 
-    def test_get_agent_tools_technical(self):
+    def test_get_agent_tools_technical(self, monkeypatch):
         """Test tool assignment for technical agents."""
+        from config import Config
+
         coordinator = HarnessCoordinator()
 
         # Technical agent keywords
@@ -95,9 +97,16 @@ This agent has no frontmatter.
         assert "write_file" in tools
         assert "grep" in tools
         assert "glob" in tools
-        assert "bash" in tools
-        assert "edit_file" in tools
         assert "web_search" in tools
+        # shell 类工具默认关闭（fail-closed，见 SECURITY.md 工具执行边界）
+        assert "bash" not in tools
+        assert "edit_file" not in tools
+
+        # 显式开启 OPENHARNESS_SHELL_TOOLS_ENABLED 后才分配 shell 类工具
+        monkeypatch.setattr(Config, 'OPENHARNESS_SHELL_TOOLS_ENABLED', True)
+        tools_with_shell = coordinator._get_agent_tools("fullstack-developer")
+        assert "bash" in tools_with_shell
+        assert "edit_file" in tools_with_shell
 
     def test_get_agent_tools_business(self):
         """Test tool assignment for business agents."""

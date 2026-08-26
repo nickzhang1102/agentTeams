@@ -6,7 +6,9 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src')
+      '@': path.resolve(__dirname, 'src'),
+      // 仓库根（frontend 的上一级）：用于单源引用根级文档，如 DISCLAIMER.md
+      '@repo': path.resolve(__dirname, '..')
     }
   },
   build: {

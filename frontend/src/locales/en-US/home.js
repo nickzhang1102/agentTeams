@@ -111,15 +111,15 @@ export default {
       title: 'Knowledge base',
       description: 'Upload documents, build a knowledge graph, and search intelligently',
     },
-    oncopathCard: {
+    partnerCard: {
       title: 'Works with OncoPath',
       description: 'Open-source medical report platform that aggregates records and builds consultation prompts.',
     },
-    oncopathGuide: {
-      step1Title: 'A complete solution with OnCoPath',
+    partnerGuide: {
+      step1Title: 'A complete solution with OncoPath',
       step1Desc: 'OncoPath is an open-source medical report platform by the same author: it manages lab, exam and pathology reports plus treatment records, and prepares consultation materials for AgentTeams when a virtual consultation starts.',
       step2Title: 'The integrated consultation flow',
-      step2Desc: 'OnCoPath prepares the materials → AgentTeams expert teams analyze in parallel → the consolidated report is embedded back into the patient timeline.',
+      step2Desc: 'OncoPath prepares the materials → AgentTeams expert teams analyze in parallel → the consolidated report is embedded back into the patient timeline.',
       featureData: 'Record management',
       featurePrompt: 'Material preparation',
       featureEmbed: 'Report review',

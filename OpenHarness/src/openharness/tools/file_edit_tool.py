@@ -34,13 +34,16 @@ class FileEditTool(BaseTool):
         path = _resolve_path(context.cwd, arguments.path)
 
         from openharness.sandbox.session import is_docker_sandbox_active
+        from openharness.sandbox.path_validator import validate_sandbox_path
 
-        if is_docker_sandbox_active():
-            from openharness.sandbox.path_validator import validate_sandbox_path
-
+        in_sandbox = is_docker_sandbox_active()
+        # 与 file_write_tool 一致：沙箱内始终校验；服务端集成场景在
+        # 非沙箱运行时也把编辑限制在工作目录内。
+        if in_sandbox or (context.metadata or {}).get('restrict_to_cwd'):
             allowed, reason = validate_sandbox_path(path, context.cwd)
             if not allowed:
-                return ToolResult(output=f"Sandbox: {reason}", is_error=True)
+                prefix = "Sandbox" if in_sandbox else "Blocked"
+                return ToolResult(output=f"{prefix}: {reason}", is_error=True)
 
         if not path.exists():
             return ToolResult(output=f"File not found: {path}", is_error=True)

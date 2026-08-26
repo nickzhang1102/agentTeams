@@ -111,11 +111,11 @@ export default {
       title: '知识库',
       description: '上传文档，构建专属知识图谱，智能检索',
     },
-    oncopathCard: {
+    partnerCard: {
       title: '搭配 OncoPath 使用',
       description: '开源医疗报告管理平台，聚合病历资料并生成会诊提示词。',
     },
-    oncopathGuide: {
+    partnerGuide: {
       step1Title: '与 OncoPath 组成完整方案',
       step1Desc: 'OncoPath 是同作者开源的医疗报告管理平台：管理检验、检查、病理报告与治疗记录，发起虚拟会诊时自动把病历整理成会诊材料交给 AgentTeams 分析。',
       step2Title: '集成后的虚拟会诊流程',

@@ -33,13 +33,16 @@ class FileWriteTool(BaseTool):
         path = _resolve_path(context.cwd, arguments.path)
 
         from openharness.sandbox.session import is_docker_sandbox_active
+        from openharness.sandbox.path_validator import validate_sandbox_path
 
-        if is_docker_sandbox_active():
-            from openharness.sandbox.path_validator import validate_sandbox_path
-
+        in_sandbox = is_docker_sandbox_active()
+        # 沙箱内始终做边界校验；服务端集成场景（restrict_to_cwd 元数据）在
+        # 非沙箱运行时同样把写入限制在工作目录内，防止 Agent 覆盖宿主任意文件。
+        if in_sandbox or (context.metadata or {}).get('restrict_to_cwd'):
             allowed, reason = validate_sandbox_path(path, context.cwd)
             if not allowed:
-                return ToolResult(output=f"Sandbox: {reason}", is_error=True)
+                prefix = "Sandbox" if in_sandbox else "Blocked"
+                return ToolResult(output=f"{prefix}: {reason}", is_error=True)
 
         approval_prompt = context.metadata.get("edit_approval_prompt") if context.metadata else None
         if approval_prompt is not None:

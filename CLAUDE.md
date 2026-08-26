@@ -162,8 +162,8 @@ docker compose up -d
 ```
 
 **服务清单**：
-- `postgres`（postgres:18-alpine，端口 5432）
-- `backend`（FastAPI + uvicorn，端口 5000）
+- `postgres`（pgvector/pgvector:pg18，宿主 127.0.0.1:5433 → 容器 5432，仅回环绑定）
+- `backend`（FastAPI + gunicorn/UvicornWorker，容器端口 5000，宿主仅回环绑定）
 - `frontend`（Nginx + Vue dist，端口 8380）
 
 **注意**：

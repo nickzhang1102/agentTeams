@@ -100,6 +100,37 @@ async def test_file_write_rejection_does_not_create_parent_directories(tmp_path:
 
 
 @pytest.mark.asyncio
+async def test_file_write_and_edit_respect_restrict_to_cwd_metadata(tmp_path: Path):
+    """服务端集成场景注入 restrict_to_cwd 后，非沙箱运行也不得写出工作目录。"""
+    context = ToolExecutionContext(cwd=tmp_path, metadata={"restrict_to_cwd": True})
+    # 探针路径放在工作目录之外（pytest 临时区的父目录），验证后被拒绝且不得落盘
+    escape_path = (tmp_path.parent / "openharness_escape_probe.txt").resolve()
+
+    write_result = await FileWriteTool().execute(
+        FileWriteToolInput(path=str(escape_path), content="nope\n"),
+        context,
+    )
+    assert write_result.is_error is True
+    assert "Blocked" in write_result.output
+    assert not escape_path.exists()
+
+    edit_result = await FileEditTool().execute(
+        FileEditToolInput(path=str(escape_path), old_str="a", new_str="b"),
+        context,
+    )
+    assert edit_result.is_error is True
+    assert not escape_path.exists()
+
+    # 工作目录内的写入不受影响
+    inside = await FileWriteTool().execute(
+        FileWriteToolInput(path="notes.txt", content="ok\n"),
+        context,
+    )
+    assert inside.is_error is False
+    assert (tmp_path / "notes.txt").exists()
+
+
+@pytest.mark.asyncio
 async def test_file_edit_rejects_when_edit_approval_denied(tmp_path: Path):
     target = tmp_path / "notes.txt"
     target.write_text("one\ntwo\n", encoding="utf-8")
