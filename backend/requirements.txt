@@ -34,7 +34,7 @@ openai>=1.0.0
 instructor>=1.15.0
 
 # 生产服务器
-gunicorn==22.0.0
+gunicorn==23.0.0
 
 # 开发工具
 pytest==9.0.3

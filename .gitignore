@@ -49,3 +49,8 @@
 
 # 内部知识整理稿（不随开源发布，本地保留）
 "/docs/多agent协作与调用工具.md"
+
+# OpenHarness 文档站构建产物（可由源码重建）
+/OpenHarness/docs/autopilot/
+# jspace 归档目录
+/.jspace.archive-*/

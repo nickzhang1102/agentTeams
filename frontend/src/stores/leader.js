@@ -288,7 +288,6 @@ export const useLeaderStore = defineStore('leader', () => {
         // 如果 leaderState 不在终态，说明 SSE 可能提前断开，后台任务可能仍在运行
         if (execution.isCurrent() && currentSession.value &&
             !['completed', 'failed', 'stopped', 'questioning', 'idle'].includes(leaderState.value)) {
-          console.log('[Leader] SSE ended without completion, attempting recovery')
           await recoverFromDisconnect(currentSession.value.id, execution)
         }
       } finally {
@@ -362,7 +361,6 @@ export const useLeaderStore = defineStore('leader', () => {
         // SSE 流结束后，检测是否异常断连
         if (execution.isCurrent() && currentSession.value &&
             !['completed', 'failed', 'stopped', 'questioning', 'idle'].includes(leaderState.value)) {
-          console.log('[Leader] SSE ended without completion, attempting recovery')
           await recoverFromDisconnect(currentSession.value.id, execution)
         }
       } finally {
@@ -591,7 +589,6 @@ export const useLeaderStore = defineStore('leader', () => {
   }
 
   function handleLeaderQuestion(data) {
-    console.log('[LeaderQuestion] Received questions:', data.questions?.length, 'current state:', leaderState.value)
 
     if (data.session_id) {
       currentSession.value = { id: data.session_id }
@@ -612,7 +609,6 @@ export const useLeaderStore = defineStore('leader', () => {
       thinkingContent.value = questionText
     }
 
-    console.log('[LeaderQuestion] After update - state:', leaderState.value, 'questions:', currentQuestions.value.length)
 
     // 新一轮追问已弹出，中断 submitAnswers 的 SSE 流，避免 handleSubmit 在流结束后关闭 dialog
     if (_abortController) {
@@ -1002,7 +998,6 @@ export const useLeaderStore = defineStore('leader', () => {
    * @param {number} sessionId - Leader 会话 ID
    */
   async function recoverFromDisconnect(sessionId, execution = null) {
-    console.log(`[Leader] SSE disconnected, polling session ${sessionId}`)
 
     const POLL_INTERVAL = 3000  // 3 秒
     const MAX_POLLS = 1200      // 最多轮询 60 分钟（3s * 1200）
@@ -1030,7 +1025,6 @@ export const useLeaderStore = defineStore('leader', () => {
 
         if (data.state === 'completed') {
           // 任务已完成，加载结果
-          console.log('[Leader] Background task completed, fetching results')
           await reconcilePersistedResults(sessionId, execution)
           return
         }
@@ -1055,7 +1049,6 @@ export const useLeaderStore = defineStore('leader', () => {
 
         // 仍在运行，更新进度提示
         if (i % 10 === 0) {
-          console.log(`[Leader] Background task still running (${i * POLL_INTERVAL / 1000}s elapsed)`)
           thinkingContent.value = leaderText('backgroundRunning', {
             seconds: Math.floor(i * POLL_INTERVAL / 1000)
           })
@@ -1479,7 +1472,6 @@ export const useLeaderStore = defineStore('leader', () => {
     } catch (error) {
       // AbortError 是正常中断（追问弹出时提前结束），不视为错误
       if (error.name === 'AbortError' || !execution.isCurrent()) {
-        console.log('[Leader] submitAnswers stream aborted (new question round)')
         return
       }
       console.error('Submit answers failed:', error)

@@ -2,6 +2,7 @@
 import asyncio
 import copy
 import hashlib
+import json
 import logging
 import secrets
 from datetime import timedelta
@@ -51,6 +52,9 @@ EMBED_TOKEN_RETENTION_SECONDS = 86400
 EMBED_TOKEN_CLEANUP_BATCH_SIZE = 100
 EMBED_LAST_USED_WRITE_INTERVAL_SECONDS = 300
 AGENTTEAMS_SOURCE = 'agentteams'
+# 启动载荷上限：message 允许长文本（会诊材料）但封顶；metadata 按序列化后体积限制
+AGENTTEAMS_MESSAGE_MAX_LENGTH = 100_000
+AGENTTEAMS_METADATA_MAX_LENGTH = 20_000
 INTEGRATION_REVOKE_ACTION = 'integration_client_revoke_embed_access'
 # 外部契约上限：generic 与遗留路由的调用方可见 request-id 长度。
 EXTERNAL_REQUEST_ID_MAX_LENGTH = 100
@@ -251,13 +255,13 @@ def _verify_integration_key(db_session: Session, supplied_key: str | None) -> No
     if not expected or not supplied:
         raise AgentTeamsLaunchError(401, 'invalid_integration_key', 'Invalid integration key')
 
-    if expected.startswith('sha256:'):
-        expected_hash = expected.removeprefix('sha256:')
-        valid = secrets.compare_digest(expected_hash, _hash_token(supplied))
-    else:
-        valid = secrets.compare_digest(expected, supplied)
+    # 仅接受 sha256: 前缀的哈希配置（fail-closed）；明文遗留值一律拒绝并提示轮换
+    if not expected.startswith('sha256:'):
+        logger.warning("AGENTTEAMS integration key is stored in plaintext; rotate it to 'sha256:<hex>'")
+        raise AgentTeamsLaunchError(401, 'invalid_integration_key', 'Invalid integration key')
 
-    if not valid:
+    expected_hash = expected.removeprefix('sha256:')
+    if not secrets.compare_digest(expected_hash, _hash_token(supplied)):
         raise AgentTeamsLaunchError(401, 'invalid_integration_key', 'Invalid integration key')
 
 
@@ -286,6 +290,25 @@ def _validate_launch_payload(payload: dict[str, Any], request_id: str | None) ->
         raise AgentTeamsLaunchError(400, 'invalid_payload', 'message is required')
     if payload.get('source_conversation_id') in (None, ''):
         raise AgentTeamsLaunchError(400, 'invalid_payload', 'source_conversation_id is required')
+    message_text = str(payload.get('message') or '')
+    if len(message_text) > AGENTTEAMS_MESSAGE_MAX_LENGTH:
+        raise AgentTeamsLaunchError(
+            400,
+            'invalid_payload',
+            f'message must be at most {AGENTTEAMS_MESSAGE_MAX_LENGTH} characters',
+        )
+    metadata_payload = payload.get('metadata')
+    if metadata_payload is not None:
+        try:
+            metadata_size = len(json.dumps(metadata_payload, ensure_ascii=False))
+        except (TypeError, ValueError):
+            raise AgentTeamsLaunchError(400, 'invalid_payload', 'metadata must be JSON-serializable')
+        if metadata_size > AGENTTEAMS_METADATA_MAX_LENGTH:
+            raise AgentTeamsLaunchError(
+                400,
+                'invalid_payload',
+                f'metadata must be at most {AGENTTEAMS_METADATA_MAX_LENGTH} characters when serialized',
+            )
     if payload.get('locale', 'zh-CN') not in AGENTTEAMS_SUPPORTED_LOCALES:
         raise AgentTeamsLaunchError(400, 'invalid_payload', 'locale must be zh-CN or en-US')
 
@@ -1004,6 +1027,16 @@ def revoke_agentteams_embed_access(
             synchronize_session=False,
         )
     )
+
+    # 撤销共享链接通道：share_token 与嵌入令牌同属本地访问面，
+    # 否则"本地访问撤销"后对话仍可经旧共享链接读取，治理语义不完整
+    db_session.query(Conversation).filter(
+        Conversation.id == launch.agentteams_conversation_id,
+        Conversation.share_token.isnot(None),
+    ).update(
+        {Conversation.share_token: None},
+        synchronize_session=False,
+    )
     operation.status = 'completed'
     operation.revoked_count = int(revoked_count)
     operation.updated_at = utcnow_naive()
@@ -1366,7 +1399,9 @@ async def _run_agentteams_leader_workflow_async(launch_id: int, session_factory:
             launch.lease_owner = None
             launch.lease_expires_at = None
             if launch.agentteams_leader_session_id:
-                mark_session_failed(session, launch.agentteams_leader_session_id, str(exc))
+                # 原始异常已在上方日志留痕；会话记录只存通用文案，
+                # 避免内部细节经 embed 快照外泄给外部系统
+                mark_session_failed(session, launch.agentteams_leader_session_id, '工作流执行失败')
             session.commit()
     finally:
         pending_tasks = [

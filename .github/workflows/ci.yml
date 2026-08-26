@@ -75,6 +75,9 @@ jobs:
       - name: 安装依赖
         run: npm ci
 
+      - name: 代码规范检查（eslint）
+        run: npm run lint
+
       - name: 运行前端单元测试
         # 显式限定 src 目录：避免误收 e2e/tests 下的 Playwright 用例
         # （vitest.config.js include 已限定 src/**，此处双保险）

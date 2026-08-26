@@ -9,6 +9,8 @@ from typing import Dict, List, Any, Optional, Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
+from config import Config
+
 logger = logging.getLogger(__name__)
 
 
@@ -58,7 +60,7 @@ class FileReadHandler(ToolHandler):
     """文件读取工具"""
     
     def __init__(self, workspace_dir: str = ""):
-        self.workspace_dir = workspace_dir or os.getcwd()
+        self.workspace_dir = workspace_dir or Config.WORKSPACE_DIR
     
     def execute(self, file_path: str, **kwargs) -> Dict[str, Any]:
         """读取文件内容"""
@@ -103,7 +105,7 @@ class FileWriteHandler(ToolHandler):
     """文件写入工具"""
     
     def __init__(self, workspace_dir: str = ""):
-        self.workspace_dir = workspace_dir or os.getcwd()
+        self.workspace_dir = workspace_dir or Config.WORKSPACE_DIR
     
     def execute(self, file_path: str, content: str, **kwargs) -> Dict[str, Any]:
         """写入文件内容"""
@@ -138,7 +140,7 @@ class ListFilesHandler(ToolHandler):
     """列出目录文件工具"""
     
     def __init__(self, workspace_dir: str = ""):
-        self.workspace_dir = workspace_dir or os.getcwd()
+        self.workspace_dir = workspace_dir or Config.WORKSPACE_DIR
     
     def execute(self, directory: str = "", **kwargs) -> Dict[str, Any]:
         """列出目录内容"""
@@ -829,7 +831,7 @@ def get_tools_registry(workspace_dir: str = None) -> ToolsRegistry:
     global _registry_instance
     
     if _registry_instance is None:
-        _registry_instance = ToolsRegistry(workspace_dir or os.getcwd())
+        _registry_instance = ToolsRegistry(workspace_dir or Config.WORKSPACE_DIR)
     
     return _registry_instance
 

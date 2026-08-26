@@ -105,6 +105,8 @@ alembic upgrade head
 # 创建默认管理员账号（默认密码 admin123，首次登录后请立即修改）
 python init_admin.py
 
+> 注：仅当 `APP_ENV=development` 显式设置时才使用默认密码（见 `.env.example`）；否则会生成随机密码并打印/写入 data/.admin_initial_password。
+
 # 启动服务
 python run.py
 ```
@@ -180,7 +182,7 @@ agentTeams/
 - **SQLAlchemy 2.0** - ORM
 - **PostgreSQL 18** - 数据库（pgvector 向量索引）
 - **LangGraph** - 多智能体编排
-- **psycopg 3.3** - PostgreSQL 适配器
+- **psycopg ≥ 3.2** - PostgreSQL 适配器
 - **python-jose** - JWT 认证
 - **OpenAI SDK** - LLM API 集成（OpenAI 兼容接口）
 

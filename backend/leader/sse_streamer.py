@@ -388,11 +388,12 @@ class SSEStreamer:
                     for sse_event in sse_event_list:
                         event_queue.put(sse_event)
             except Exception as e:
-                logger.error(f"LangGraph streaming error: {e}")
+                # 原始异常仅入日志；SSE 通道只暴露通用文案，避免内部细节外泄
+                logger.error(f"LangGraph streaming error: {e}", exc_info=True)
                 event_queue.put({
                     "type": "error",
                     "session_id": self.session_id,
-                    "message": str(e)
+                    "message": "处理请求时发生内部错误，请稍后重试"
                 })
             finally:
                 event_queue.put(None)  # 流结束信号

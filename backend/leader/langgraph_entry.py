@@ -219,9 +219,11 @@ async def async_run_leader_workflow(
             return
 
         # 更新 session 状态
-        mark_session_failed(db, session_id, str(e))
+        # 原始异常仅入日志；会话记录与 SSE 通道只暴露通用文案，避免内部细节外泄
+        logger.error(f"LangGraph 工作流执行失败 session={session_id}: {e}", exc_info=True)
+        mark_session_failed(db, session_id, '工作流执行失败，请稍后重试或联系管理员')
 
-        yield {"type": "error", "session_id": session_id, "message": str(e)}
+        yield {"type": "error", "session_id": session_id, "message": "处理请求时发生内部错误，请稍后重试"}
 
     finally:
         # 【兜底】若 session 未达终态（图中途被截断 / 新 early return 路径），强制标记 failed
@@ -455,9 +457,11 @@ async def async_continue_leader_workflow(
                 yield make_execution_stopped_event(session_id, generation_locale)
             return
 
-        mark_session_failed(db, session_id, str(e))
+        # 原始异常仅入日志；会话记录与 SSE 通道只暴露通用文案，避免内部细节外泄
+        logger.error(f"LangGraph 工作流执行失败 session={session_id}: {e}", exc_info=True)
+        mark_session_failed(db, session_id, '工作流执行失败，请稍后重试或联系管理员')
 
-        yield {"type": "error", "session_id": session_id, "message": str(e)}
+        yield {"type": "error", "session_id": session_id, "message": "处理请求时发生内部错误，请稍后重试"}
 
     finally:
         # 【兜底】若 session 未达终态（图中途被截断 / 新 early return 路径），强制标记 failed

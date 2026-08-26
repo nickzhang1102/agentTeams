@@ -68,7 +68,7 @@ def _payload():
 
 
 def _prepare_service_account(db_session):
-    _add_config(db_session, AGENTTEAMS_INTEGRATION_KEY, 'test-integration-key')
+    _add_config(db_session, AGENTTEAMS_INTEGRATION_KEY, 'sha256:' + hashlib.sha256(b'test-integration-key').hexdigest())
     user = ensure_agentteams_service_account(db_session)
     if not db_session.query(LLMModel).first():
         db_session.add(LLMModel(
@@ -1016,7 +1016,7 @@ def test_launch_rejects_invalid_integration_key(client):
 def test_launch_requires_service_account(client):
     session = TestSessionLocal()
     try:
-        _add_config(session, AGENTTEAMS_INTEGRATION_KEY, 'test-integration-key')
+        _add_config(session, AGENTTEAMS_INTEGRATION_KEY, 'sha256:' + hashlib.sha256(b'test-integration-key').hexdigest())
         session.commit()
     finally:
         session.close()
@@ -1059,7 +1059,7 @@ def test_launch_rejects_when_integration_disabled(client):
 def test_launch_rejects_invalid_payload(client):
     session = TestSessionLocal()
     try:
-        _add_config(session, AGENTTEAMS_INTEGRATION_KEY, 'test-integration-key')
+        _add_config(session, AGENTTEAMS_INTEGRATION_KEY, 'sha256:' + hashlib.sha256(b'test-integration-key').hexdigest())
         session.commit()
     finally:
         session.close()

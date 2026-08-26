@@ -544,7 +544,7 @@ curl -I http://localhost:8380
 ### 6.3 功能验证
 
 1. 浏览器访问 `http://<服务器IP>:8380`
-2. 注册账号或使用默认账号 `admin / admin123` 登录（首次登录后请立即修改默认密码）
+2. 注册账号登录；若部署时保留 `APP_ENV=development` 则默认账号为 `admin / admin123`（生产环境首次启动会生成随机密码，写入容器内 data/.admin_initial_password），首次登录后请立即修改
 3. 创建对话，发送消息，验证 SSE 流式响应正常
 4. 选择 Agent（如"全科专家"），验证 Agent 响应
 

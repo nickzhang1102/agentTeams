@@ -284,7 +284,7 @@ class ToolCallLog(Base):
     - 安全审计
 
     字段说明：
-    - tool_name: 工具名称（如 file_read, execute_code）
+    - tool_name: 工具名称（如 file_read, web_search）
     - tool_input: 输入参数（JSON）
     - tool_output: 输出结果（JSON）
     - status: 执行状态（success, failed, timeout）

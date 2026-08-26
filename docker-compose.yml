@@ -57,7 +57,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/agent_teams
       - APP_ENV=production
-      - AGENTS_DIR=/app/agents
+      - AGENTS_DIR=/app/.claude/agents
       # 知识库数据必须落在挂载卷内（./backend/data:/app/data），否则容器重建即丢
       - KNOWLEDGE_DATA_DIR=/app/data/knowledge
       # RSA 密钥目录落在挂载卷内，容器重建后密钥保持稳定
@@ -68,7 +68,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./backend/data:/app/data
-      - ./.claude/agents:/app/agents:ro
+      - ./.claude/agents:/app/.claude/agents:ro
       # 本地 OpenHarness 开发：取消注释下一行，路径改为你的本地 OpenHarness 项目目录
       # - /d/dev/OpenHarness:/app/openharness:ro
     ports:

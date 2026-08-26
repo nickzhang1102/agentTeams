@@ -578,9 +578,8 @@ const sanitizedContent = computed(() => {
     // 返回完整文档而非 body 内容（保留 SVG 结构）
     WHOLE_DOCUMENT: false,
     // 允许 SVG 命名空间
-    ADD_URI_SAFE_ATTR: [
-      'xlink:href'
-    ]
+    // 注：不再将 xlink:href 加入 ADD_URI_SAFE_ATTR——保留 DOMPurify 的
+    // URI 协议校验（javascript: 等危险协议仍被拦截），正常 http(s) 链接受影响
   })
 
   return promoteSingleEvidenceBlocks(sanitized)

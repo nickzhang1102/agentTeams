@@ -9,6 +9,7 @@ Agent Teams 遗留的 SystemConfig 键在迁移窗口期内仍然作为
 from dataclasses import dataclass
 from datetime import timedelta
 import hashlib
+import logging
 import re
 import secrets
 
@@ -20,6 +21,8 @@ from services.agentteams_integration_account import (
     resolve_agentteams_service_account,
 )
 from utils.time_utils import utcnow_naive
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -46,14 +49,20 @@ def hash_integration_key(value: str) -> str:
 
 
 def _credential_matches(expected: str, supplied: str) -> bool:
-    """接受遗留的明文测试/开发值以及哈希后的生产值。"""
+    """仅接受 ``sha256:`` 前缀的哈希凭证（fail-closed）。
+
+    明文遗留值不再被接受：认证直接失败并提示运维轮换为哈希存储。
+    """
     if not expected or not supplied:
         return False
-    if expected.startswith('sha256:'):
-        return secrets.compare_digest(
-            expected.removeprefix('sha256:'), hash_integration_key(supplied)
+    if not expected.startswith('sha256:'):
+        logger.warning(
+            "Integration credential is stored in plaintext; rotate it to 'sha256:<hex>'"
         )
-    return secrets.compare_digest(expected, supplied)
+        return False
+    return secrets.compare_digest(
+        expected.removeprefix('sha256:'), hash_integration_key(supplied)
+    )
 
 
 def _get_config_value(db_session: Session, key: str, default: str = '') -> str:
