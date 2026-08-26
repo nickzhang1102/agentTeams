@@ -1301,7 +1301,8 @@ watch(locale, () => {
 
 <style scoped lang="scss">
 .conversation-display {
-  height: 100vh;
+  /* 预留全局底部状态栏高度，避免内容被遮挡 */
+  height: calc(100vh - var(--footer-height));
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -1310,6 +1311,8 @@ watch(locale, () => {
 }
 
 .conversation-display.embed-mode {
+  /* 嵌入模式无底部状态栏，保持满屏 */
+  height: 100vh;
   max-width: none;
   margin: 0;
 }
@@ -1694,7 +1697,7 @@ watch(locale, () => {
   width: 100%;
   display: flex;
   overflow: hidden;
-  height: calc(100vh - 56px);
+  height: calc(100vh - var(--footer-height) - 56px);
 }
 
 /* Splitpanes 自定义样式 */
@@ -1942,7 +1945,7 @@ watch(locale, () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  height: calc(100vh - var(--footer-height));
   background: var(--color-background);
   gap: var(--spacing-md);
 

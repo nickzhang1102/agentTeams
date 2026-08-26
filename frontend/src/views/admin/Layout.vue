@@ -90,7 +90,8 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .admin-layout {
   display: flex;
-  min-height: 100vh;
+  /* 预留全局底部状态栏高度，避免内容被遮挡 */
+  min-height: calc(100vh - var(--footer-height));
 }
 
 .sidebar-overlay {
@@ -110,7 +111,7 @@ onUnmounted(() => {
   transition: margin-left 0.3s;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--footer-height));
 
   &.sidebar-collapsed {
     margin-left: 64px;

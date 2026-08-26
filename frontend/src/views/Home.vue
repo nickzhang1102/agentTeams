@@ -960,7 +960,7 @@ function onModelChange(val) {
 .onboarding-item div { display: flex; flex-direction: column; gap: 5px; }
 .onboarding-item span { font-size: 12px; line-height: 1.5; color: var(--color-text-secondary); }
 .onboarding-note { margin-top: 16px !important; font-size: 12px; }
-.beginner-help { position: fixed; right: 24px; bottom: 24px; z-index: 1200; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.beginner-help { position: fixed; right: 24px; bottom: calc(var(--footer-height) + 16px); z-index: 1200; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .beginner-help-fab { width: 48px; height: 48px; border: 0; border-radius: 50%; color: #fff; background: var(--color-primary); box-shadow: 0 8px 24px rgba(37, 99, 235, .28); cursor: pointer; font-size: 22px; font-weight: 700; transition: transform .2s, box-shadow .2s; }
 .beginner-help-fab:hover, .beginner-help-fab:focus-visible { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(37, 99, 235, .36); outline: none; }
 .beginner-help-panel { width: min(350px, calc(100vw - 32px)); padding: 18px; border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-card); box-shadow: 0 16px 40px rgba(15, 23, 42, .18); }

@@ -8,6 +8,7 @@
   <meta property="og:title" content="Agent Teams | 多智能体协作平台">
   <meta property="og:description" content="把一个复杂问题交给一支 AI 专家团队：需求评估、团队组建、并行执行、综合报告全自动编排。开源（AGPL-3.0），支持自部署。">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="https://nickzhang1102.github.io/agentTeams/screenshots/desktop-final-report.png">
   <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%234f83f7"/><stop offset="1" stop-color="%231d4ed8"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(%23g)"/><text x="32" y="44" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="700" fill="white" text-anchor="middle">A</text></svg>'>
   <title>Agent Teams | 多智能体协作平台</title>
   <link rel="stylesheet" href="style.css">
@@ -20,7 +21,7 @@
     </a>
     <div class="nav-links">
       <a href="#capabilities">能力</a>
-      <a href="#workflow">工作流</a>
+      <a href="#showcase">界面</a>
       <a href="#deploy">部署</a>
       <a href="#sponsor">赞助</a>
     </div>
@@ -35,52 +36,37 @@
       <div class="hero-bg" aria-hidden="true">
         <i class="glow glow-one"></i>
         <i class="glow glow-two"></i>
-        <i class="grid-lines"></i>
-        <i class="star star-one">✦</i>
-        <i class="star star-two">✦</i>
-        <i class="star star-three">✦</i>
+        <i class="dot-grid"></i>
       </div>
       <div class="hero-inner">
-        <p class="hero-chips" data-reveal>
-          <span class="chip chip-solid">开源 · AGPL-3.0</span>
-          <span class="chip">自部署 · 数据自持</span>
-          <span class="chip">LangGraph 编排</span>
-        </p>
-        <h1 id="hero-title" data-reveal>把难题交给一支<em>AI 专家团队</em></h1>
-        <p class="hero-lede" data-reveal>Leader 智能编排完成<em>需求评估、团队组建、并行执行与综合报告</em>，你只需提出问题。</p>
-        <div class="hero-actions" data-reveal>
-          <a class="button primary" href="https://github.com/nickzhang1102/agentTeams" target="_blank" rel="noopener noreferrer">
-            查看 GitHub 源码
-            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
-          <a class="button ghost" href="#workflow">了解工作流程</a>
+        <div class="hero-copy">
+          <p class="hero-chips">
+            <span class="chip chip-solid">开源 · AGPL-3.0</span>
+            <span class="chip">自部署 · 数据自持</span>
+            <span class="chip">LangGraph 编排</span>
+          </p>
+          <h1 id="hero-title">Agent Teams</h1>
+          <p class="hero-lede">把一个复杂问题交给一支<em>AI 专家团队</em>：需求评估、团队组建、并行执行与综合报告全自动编排。</p>
+          <p class="hero-sub">Leader 智能编排 · 107 位领域专家 · 知识图谱 GraphRAG · SSE 实时流式</p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/nickzhang1102/agentTeams" target="_blank" rel="noopener noreferrer">
+              查看 GitHub 源码
+              <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a class="button secondary" href="#showcase">浏览界面预览</a>
+          </div>
+          <p class="hero-note">内置医疗领域 Agent 仅作信息整理与辅助理解，不构成医疗诊断或治疗建议。</p>
         </div>
-
-        <div class="hero-stage" data-reveal>
-          <div class="window session-demo-wrap" aria-hidden="true">
-            <span class="window-bar">
+        <div class="hero-visual">
+          <div class="hero-window window">
+            <span class="window-bar" aria-hidden="true">
               <i></i><i></i><i></i>
-              <span class="window-title">Agent Teams · Leader 会话演示</span>
+              <span class="window-title">Agent Teams · 工作台预览</span>
             </span>
-            <div class="session-demo">
-              <span class="session-query">帮我评估这个治疗方案的可行性与风险</span>
-              <span class="session-leader"><i class="pulse"></i>LEADER 正在编排 3 位专家</span>
-              <div class="expert-row">
-                <div class="expert-card">
-                  <span class="expert-head"><i class="expert-avatar">内</i><span class="expert-name">内科专家</span></span>
-                  <span class="expert-bar"><i></i></span>
-                </div>
-                <div class="expert-card">
-                  <span class="expert-head"><i class="expert-avatar">肿</i><span class="expert-name">肿瘤内科</span></span>
-                  <span class="expert-bar"><i></i></span>
-                </div>
-                <div class="expert-card">
-                  <span class="expert-head"><i class="expert-avatar">药</i><span class="expert-name">临床药学</span></span>
-                  <span class="expert-bar"><i></i></span>
-                </div>
-              </div>
-              <span class="report-line">✦ 综合报告生成中<span class="spark"><i></i><i></i><i></i></span></span>
-            </div>
+            <picture>
+              <source media="(max-width: 860px)" srcset="screenshots/mobile-home.png">
+              <img src="screenshots/desktop-home.png" alt="Agent Teams 项目主页，输入问题即可发起多智能体分析" width="1600" height="1000" fetchpriority="high">
+            </picture>
           </div>
           <span class="float-chip float-chip-one" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.6 3.9L17.5 9.5l-3.9 1.6L12 15l-1.6-3.9L6.5 9.5l3.9-1.6z"/><path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/></svg>
@@ -91,28 +77,26 @@
             多专家并行协作
           </span>
         </div>
-
-        <dl class="hero-stats" data-reveal>
-          <div class="stat">
-            <dt>领域专家 Agent</dt>
-            <dd>107</dd>
-          </div>
-          <div class="stat">
-            <dt>步自动编排</dt>
-            <dd>4<i>步闭环</i></dd>
-          </div>
-          <div class="stat">
-            <dt>数据主权</dt>
-            <dd>100<i>% 自持</i></dd>
-          </div>
-          <div class="stat">
-            <dt>开源协议</dt>
-            <dd>AGPL<i>-3.0</i></dd>
-          </div>
-        </dl>
-
-        <p class="hero-note">内置医疗领域 Agent 仅作信息整理与辅助理解，不构成医疗诊断或治疗建议。</p>
       </div>
+      <dl class="hero-stats" data-reveal>
+        <div class="stat">
+          <dt>领域专家 Agent</dt>
+          <dd>107</dd>
+        </div>
+        <div class="stat">
+          <dt>步自动编排</dt>
+          <dd>4<i>步闭环</i></dd>
+        </div>
+        <div class="stat">
+          <dt>数据主权</dt>
+          <dd>100<i>% 自持</i></dd>
+        </div>
+        <div class="stat">
+          <dt>开源协议</dt>
+          <dd>AGPL<i>-3.0</i></dd>
+        </div>
+      </dl>
+      <a class="hero-next" href="#capabilities">向下浏览 <span class="hero-next-arrow" aria-hidden="true">↓</span></a>
     </section>
 
     <section class="intro" id="capabilities" aria-labelledby="capability-title">
@@ -173,11 +157,76 @@
       </div>
     </section>
 
+    <section class="showcase" id="showcase" aria-labelledby="showcase-title">
+      <div class="showcase-heading" data-reveal>
+        <p class="eyebrow">真实界面 · 演示数据</p>
+        <h2 id="showcase-title">每一次滚动，看到一个完整工作环节</h2>
+        <p>所有截图均来自当前系统以演示数据运行的真实界面，覆盖从发起问题到拿到报告的完整链路。</p>
+      </div>
+
+      <div class="showcase-story desktop-story" data-story="desktop">
+        <div class="showcase-stage" aria-live="polite">
+          <!-- 背景层：同图模糊放大填充，避免竖版截图两侧留黑 -->
+          <img class="showcase-bg" src="screenshots/desktop-home.png" alt="" aria-hidden="true">
+          <!-- 前景层：完整显示截图主体 -->
+          <img class="showcase-fg" src="screenshots/desktop-home.png" alt="项目主页" loading="eager">
+          <div class="showcase-copy">
+            <p class="showcase-index">01 / 07</p>
+            <h3>项目主页 · 发起分析</h3>
+            <p class="showcase-desc">在输入框描述你的问题，选择团队方案与模型，一键交给专家团队。</p>
+            <div class="showcase-dots" role="group" aria-label="切换预览步骤"></div>
+          </div>
+          <p class="showcase-progress" aria-hidden="true">01</p>
+        </div>
+        <article class="showcase-step active" data-index="01" data-title="项目主页 · 发起分析" data-description="在输入框描述你的问题，选择团队方案与模型，一键交给专家团队。" data-image="screenshots/desktop-home.png" data-alt="项目主页"></article>
+        <article class="showcase-step" data-index="02" data-title="107 位领域专家 Agent" data-description="医疗专科、商业角色、期货与证券分析等专家按领域分类，开箱即用。" data-image="screenshots/desktop-agents.png" data-alt="Agent 广场"></article>
+        <article class="showcase-step" data-index="03" data-title="团队方案 · 一键启动" data-description="系统预设组合包与工作流模板，跳过重复配置直接按既定团队启动。" data-image="screenshots/desktop-templates.png" data-alt="团队方案页"></article>
+        <article class="showcase-step" data-index="04" data-title="执行编排 · 过程透明" data-description="Leader 把任务拆解为阶段与子任务，每个 Agent 的执行状态实时可见。" data-image="screenshots/desktop-conversation-detail.png" data-alt="执行编排视图"></article>
+        <article class="showcase-step" data-index="05" data-title="综合报告 · 有据可查" data-description="汇总各专家结论生成结构化报告，支持导出、分享与下钻到原始证据。" data-image="screenshots/desktop-final-report.png" data-alt="综合最终报告"></article>
+        <article class="showcase-step" data-index="06" data-title="管理后台 · 全局可控" data-description="仪表盘统计、会话管理、性能监控与工具调试集中在一个后台。" data-image="screenshots/desktop-admin.png" data-alt="管理后台仪表盘"></article>
+        <article class="showcase-step" data-index="07" data-title="项目配置 · 密钥自持" data-description="LLM 模型与 Exa/Tavily 搜索凭证在项目内配置，密钥加密存储。" data-image="screenshots/desktop-project-settings.png" data-alt="项目配置页"></article>
+      </div>
+
+      <div class="showcase-story mobile-story" data-story="mobile">
+        <div class="showcase-stage" aria-live="polite">
+          <img class="showcase-bg" src="screenshots/mobile-home.png" alt="" aria-hidden="true">
+          <img class="showcase-fg" src="screenshots/mobile-home.png" alt="移动端主页" loading="lazy">
+          <div class="showcase-copy">
+            <p class="showcase-index">01 / 04</p>
+            <h3>移动端主页</h3>
+            <p class="showcase-desc">手机上同样可以发起分析、跟进执行进度与阅读综合报告。</p>
+            <div class="showcase-dots" role="group" aria-label="切换预览步骤"></div>
+          </div>
+          <p class="showcase-progress" aria-hidden="true">01</p>
+        </div>
+        <article class="showcase-step active" data-index="01" data-title="移动端主页" data-description="手机上同样可以发起分析、跟进执行进度与阅读综合报告。" data-image="screenshots/mobile-home.png" data-alt="移动端主页"></article>
+        <article class="showcase-step" data-index="02" data-title="移动端执行编排" data-description="阶段与子任务的执行进度在窄屏上按时间线清晰展开。" data-image="screenshots/mobile-conversation.png" data-alt="移动端执行编排"></article>
+        <article class="showcase-step" data-index="03" data-title="移动端 Agent 广场" data-description="按领域浏览与检索专家 Agent，随时组建你的团队。" data-image="screenshots/mobile-agents.png" data-alt="移动端 Agent 广场"></article>
+        <article class="showcase-step" data-index="04" data-title="移动端团队方案" data-description="预设团队方案一键启动，移动端与桌面端体验一致。" data-image="screenshots/mobile-templates.png" data-alt="移动端团队方案"></article>
+      </div>
+
+      <noscript>
+        <div class="no-js-gallery" aria-label="界面预览">
+          <figure><img src="screenshots/desktop-home.png" alt="项目主页"><figcaption>项目主页 · 发起分析</figcaption></figure>
+          <figure><img src="screenshots/desktop-agents.png" alt="Agent 广场"><figcaption>107 位领域专家 Agent</figcaption></figure>
+          <figure><img src="screenshots/desktop-templates.png" alt="团队方案页"><figcaption>团队方案 · 一键启动</figcaption></figure>
+          <figure><img src="screenshots/desktop-conversation-detail.png" alt="执行编排视图"><figcaption>执行编排 · 过程透明</figcaption></figure>
+          <figure><img src="screenshots/desktop-final-report.png" alt="综合最终报告"><figcaption>综合报告 · 有据可查</figcaption></figure>
+          <figure><img src="screenshots/desktop-admin.png" alt="管理后台仪表盘"><figcaption>管理后台 · 全局可控</figcaption></figure>
+          <figure><img src="screenshots/desktop-project-settings.png" alt="项目配置页"><figcaption>项目配置 · 密钥自持</figcaption></figure>
+          <figure><img src="screenshots/mobile-home.png" alt="移动端主页"><figcaption>移动端主页</figcaption></figure>
+          <figure><img src="screenshots/mobile-conversation.png" alt="移动端执行编排"><figcaption>移动端执行编排</figcaption></figure>
+          <figure><img src="screenshots/mobile-agents.png" alt="移动端 Agent 广场"><figcaption>移动端 Agent 广场</figcaption></figure>
+          <figure><img src="screenshots/mobile-templates.png" alt="移动端团队方案"><figcaption>移动端团队方案</figcaption></figure>
+        </div>
+      </noscript>
+    </section>
+
     <section class="flow" id="workflow" aria-labelledby="workflow-title">
       <div class="flow-heading" data-reveal>
-        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>一次提问的旅程</p>
+        <p class="eyebrow">一次提问的旅程</p>
         <h2 id="workflow-title">四步编排，从需求到报告</h2>
-        <p>你只负责提出问题；Leader 负责理解它、为它组建最合适的专家团队、盯完整个执行过程，并把所有结论汇成一份可追溯的报告。</p>
+        <p>你只负责提出问题；Leader 负责理解它、为它组建最合适的专家团队、盯完整个执行过程，并把所有结论汇成一份可追溯的报告。上方的界面预览展示的正是这条链路的每一步。</p>
       </div>
       <div class="flow-track" role="list">
         <div class="flow-step" role="listitem" data-reveal>
@@ -185,31 +234,26 @@
           <h3>需求评估</h3>
           <p>Leader 判断任务复杂度，必要时向你追问澄清，确定评估阈值与专家范围。</p>
           <span class="flow-tag">requirement_loop</span>
-          <div class="flow-anim" aria-hidden="true"><i></i><i></i><i></i></div>
         </div>
         <div class="flow-step" role="listitem" data-reveal>
           <span class="flow-num">02</span>
           <h3>团队组建</h3>
           <p>按优先级规则从 100+ 专家中选人，生成 DAG 执行计划，分批安排就位。</p>
           <span class="flow-tag">team_form_dag</span>
-          <div class="flow-anim" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         </div>
         <div class="flow-step" role="listitem" data-reveal>
           <span class="flow-num">03</span>
           <h3>并行执行</h3>
           <p>批次内多专家并行调用工具与知识库，SSE 实时推送思考与中间结果。</p>
           <span class="flow-tag">batch_executor</span>
-          <div class="flow-anim" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         </div>
         <div class="flow-step" role="listitem" data-reveal>
           <span class="flow-num">04</span>
           <h3>综合报告</h3>
           <p>汇总各专家结论生成结构化报告，每个观点都可下钻到对应的子任务与证据。</p>
           <span class="flow-tag">summarize</span>
-          <div class="flow-anim" aria-hidden="true"><i></i><i></i><i></i></div>
         </div>
       </div>
-      <p class="flow-note">示意动画基于真实编排链路绘制；实际界面中的每一步都可以展开查看执行细节。</p>
     </section>
 
     <section class="deploy" id="deploy" aria-labelledby="deploy-title">
@@ -285,8 +329,14 @@ cp backend/.env.example backend/.env
         <p class="section-sub">如果 Agent Teams 对你有所帮助，欢迎请作者喝一杯咖啡——每一份支持都是持续维护的动力，真的很重要！</p>
       </div>
       <div class="sponsor-cards" data-reveal>
-        <!-- 赞赏渠道占位：请作者自行补充打码后的收款码或赞助平台链接，
-             避免在公开页面直接暴露含个人身份信息的原始收款码 -->
+        <figure class="sponsor-card">
+          <img src="screenshots/wechat.jpg" alt="微信赞赏码" loading="lazy">
+          <figcaption>💚 微信</figcaption>
+        </figure>
+        <figure class="sponsor-card">
+          <img src="screenshots/alipay.jpg" alt="支付宝收款码" loading="lazy">
+          <figcaption>💙 支付宝</figcaption>
+        </figure>
         <p class="sponsor-star">⭐ 去 GitHub 点一个 Star，同样是对作者的支持。</p>
       </div>
     </section>
@@ -304,7 +354,7 @@ cp backend/.env.example backend/.env
       <nav class="footer-col" aria-label="页脚页面导航">
         <strong>页面</strong>
         <a href="#capabilities">核心能力</a>
-        <a href="#workflow">工作流</a>
+        <a href="#showcase">界面预览</a>
         <a href="#deploy">自部署</a>
         <a href="#sponsor">赞助支持</a>
       </nav>
@@ -318,7 +368,7 @@ cp backend/.env.example backend/.env
     </div>
     <div class="footer-bottom">
       <p>© 2026 Agent Teams · 以 AGPL-3.0 许可开源</p>
-      <p>Vue3 + FastAPI + LangGraph</p>
+      <p>Vue3 + FastAPI + LangGraph · 演示数据 · 已脱敏</p>
     </div>
   </footer>
 
@@ -366,6 +416,61 @@ cp backend/.env.example backend/.env
     } else {
       revealTargets.forEach((el) => el.classList.add('in-view'));
     }
+
+    /* 逐屏叙事：截图全屏铺满，滚动切换 */
+    document.querySelectorAll('.showcase-story').forEach((story) => {
+      const stage = story.querySelector('.showcase-stage');
+      const index = stage.querySelector('.showcase-index');
+      const title = stage.querySelector('h3');
+      const description = stage.querySelector('.showcase-desc');
+      const fgImage = stage.querySelector('.showcase-fg');
+      const bgImage = stage.querySelector('.showcase-bg');
+      const progress = stage.querySelector('.showcase-progress');
+      const dotsBox = stage.querySelector('.showcase-dots');
+      const steps = [...story.querySelectorAll('.showcase-step')];
+
+      const dots = steps.map((step, i) => {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'showcase-dot';
+        dot.setAttribute('aria-label', `查看第 ${i + 1} 屏：${step.dataset.title}`);
+        dot.addEventListener('click', () => {
+          step.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'center' });
+        });
+        dotsBox.appendChild(dot);
+        return dot;
+      });
+
+      function activate(step) {
+        if (step.classList.contains('active')) return;
+        steps.forEach((item, i) => {
+          item.classList.toggle('active', item === step);
+          dots[i].classList.toggle('active', item === step);
+          if (item === step) dots[i].setAttribute('aria-current', 'true');
+          else dots[i].removeAttribute('aria-current');
+        });
+        stage.classList.add('is-changing');
+        window.setTimeout(() => {
+          index.textContent = `${step.dataset.index} / ${String(steps.length).padStart(2, '0')}`;
+          title.textContent = step.dataset.title;
+          description.textContent = step.dataset.description;
+          fgImage.src = step.dataset.image;
+          fgImage.alt = step.dataset.alt;
+          bgImage.src = step.dataset.image;
+          progress.textContent = step.dataset.index;
+          stage.classList.remove('is-changing');
+        }, 140);
+      }
+
+      dots[0].classList.add('active');
+      dots[0].setAttribute('aria-current', 'true');
+
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) activate(visible.target);
+      }, { rootMargin: '-42% 0px -42% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] });
+      steps.forEach((step) => observer.observe(step));
+    });
 
     /* 复制部署命令 */
     document.querySelectorAll('.copy-btn').forEach((button) => {

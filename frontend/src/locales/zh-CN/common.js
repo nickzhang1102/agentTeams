@@ -6,6 +6,18 @@ export default {
   common: {
     disclaimerTitle: '医疗 AI 免责声明',
     backToLogin: '返回登录',
+    footer: {
+      sponsor: '赞助支持',
+    },
+    sponsor: {
+      title: '赞助支持',
+      desc: '如果 Agent Teams 对你有帮助，欢迎请作者喝一杯咖啡',
+      wechat: '微信',
+      wechatAlt: '微信收款码',
+      alipay: '支付宝',
+      alipayAlt: '支付宝收款码',
+      starTip: '去 GitHub 点个 Star，同样是对作者的支持：',
+    },
     actions: {
       cancel: '取消',
     },

@@ -6,6 +6,18 @@ export default {
   common: {
     disclaimerTitle: 'Medical AI Disclaimer',
     backToLogin: 'Back to login',
+    footer: {
+      sponsor: 'Sponsor',
+    },
+    sponsor: {
+      title: 'Sponsor',
+      desc: 'If Agent Teams helps you, consider buying the author a coffee',
+      wechat: 'WeChat',
+      wechatAlt: 'WeChat QR code',
+      alipay: 'Alipay',
+      alipayAlt: 'Alipay QR code',
+      starTip: 'Give a Star on GitHub — it helps too:',
+    },
     actions: {
       cancel: 'Cancel',
     },

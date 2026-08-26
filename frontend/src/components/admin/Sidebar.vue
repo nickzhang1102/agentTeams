@@ -88,7 +88,8 @@ const sidebarActiveText = computed(() => isDark.value ? '#6BB3FF' : '#409eff')
 <style lang="scss" scoped>
 .admin-sidebar {
   width: 220px;
-  height: 100vh;
+  /* 预留全局底部状态栏高度，避免内容被遮挡 */
+  height: calc(100vh - var(--footer-height));
   background-color: var(--el-bg-color-overlay);
   transition: width 0.3s;
   overflow: hidden;

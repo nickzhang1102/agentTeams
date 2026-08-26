@@ -84,7 +84,8 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .chat-layout {
   display: flex;
-  height: 100vh;
+  /* 预留全局底部状态栏高度，避免内容被遮挡 */
+  height: calc(100vh - var(--footer-height));
   overflow: hidden;
   background: var(--color-background, #f8f9fa);
 }
@@ -92,7 +93,7 @@ onUnmounted(() => {
 .main-area {
   flex: 1;
   min-width: 0;
-  height: 100vh;
+  height: calc(100vh - var(--footer-height));
   position: relative;
   overflow: hidden;
 }

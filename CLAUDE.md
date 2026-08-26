@@ -4,6 +4,12 @@
 
 ## 变更记录 (Changelog)
 
+### 2026-08-26
+- **前端新增全局底部状态栏（对齐 OncoPath）**: 移植姊妹项目 OncoPath 的 AppFooter 模式——fixed 底栏展示品牌版本（`/api/health` 下发 APP_VERSION）| GitHub | 赞助弹窗 | © 2026 AGPL-3.0 | 署名，移动端收窄为细条；新增 `AppFooter.vue`/`SponsorDialog.vue`（微信+支付宝双码，复用官网收款图）与 `useAppVersion`/`useResponsive` composables；embed 嵌入路由不展示；`design-system.scss` 新增 `--footer-height: 32px`，固定视口页（ChatLayout/ConversationDisplay/admin 布局）高度改 `calc(100vh - var(--footer-height))`，ThemeToggle/新手帮助等浮动件抬升至状态栏上方；文案走 i18n 双语。
+
+### 2026-08-26
+- **website 官网全面改版（对齐 OncoPath 官网）**: 布局骨架全面参考姊妹项目 OncoPath——Hero 改左右分栏（超大渐变字 + 深色窗框内嵌真实截图 + 浮动徽章），删除原 CSS 动画模拟的 session-demo 会话演示与 flow-anim 点阵动画；新增 `#showcase` 界面预览区（桌面 7 屏 + 移动 4 屏逐屏滚动叙事 + noscript 回退画廊）；赞助区补微信/支付宝收款码卡片（复用作者 OncoPath 同款码）；`website/screenshots/` 新增 11 张真实界面截图（桌面 1600×1000 七张 + 移动 390×844 四张），由本地起后端+造演示数据后 Playwright 实拍。
+
 ### 2026-08-25
 - **开源前复审整改（P1 修复 + OncoPath 更名 + 文档双语）**: 复审发现的 6 项 P1 全部闭环——`config.py` default 改为 ProductionConfig 且 `APP_ENV` 判定全链路 fail-closed（未设置即生产姿态）；上传改为流式分块校验修复 OOM DoS；删除伪沙箱 `execute_code` 工具并在 SECURITY/DOCKER 文档警示工具执行边界；修正 Docker 初始密码文档矛盾；清理内部过程文档与死测试。**OncoPath 代号全局更名 Agent Teams**：代码标识 `agentteams`、表名 `agent_teams_launches/embed_tokens`（迁移 `a8b9c0d1e2f3`）、env 前缀 `AGENTTEAMS_`，历史迁移文件保持原名。新增 README.en.md 中英双语；提交元数据去除个人邮箱。
 

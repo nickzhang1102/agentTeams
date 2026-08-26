@@ -29,3 +29,6 @@ export const getCategoryLabel = (category) => CATEGORY_LABELS[category] || '其�
 
 /** 获取状态中文标签，未知状态返回原值 */
 export const getStatusLabel = (status) => STATUS_LABELS[status] || status
+
+/** 项目仓库地址（底部状态栏与赞助弹窗共用） */
+export const REPO_URL = 'https://github.com/nickzhang1102/agentTeams'
