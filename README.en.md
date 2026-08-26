@@ -1,355 +1,213 @@
-# Agent Teams System
+# 🤝 Agent Teams
 
-> A team-oriented multi-agent collaboration platform built on Vue3+Vite and FastAPI, featuring SSE real-time streaming chat, agent teamwork, and Leader intelligent orchestration (LangGraph).
->
-> 🌐 **Live demo site**: [https://nickzhang1102.github.io/agentTeams/](https://nickzhang1102.github.io/agentTeams/)
+**Stop chatting with a single bot — hand your complex problem to an auto-assembled team of AI experts**
 
-[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/)
-[![Node](https://img.shields.io/badge/node-20.19+-green.svg)](https://nodejs.org/)
-[![PostgreSQL](https://img.shields.io/badge/postgresql-18-blue.svg)](https://www.postgresql.org/)
+Leader orchestration · DAG parallel execution · SSE streaming · 107 expert agents · Knowledge graph GraphRAG
+
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](./LICENSE)
+[![Status](https://img.shields.io/badge/status-early%20release-yellow.svg)](#-why-agent-teams)
+[![Backend](https://img.shields.io/badge/backend-FastAPI-009688.svg)](#-quick-start-docker)
+[![Frontend](https://img.shields.io/badge/frontend-Vue%203-42b883.svg)](#-quick-start-docker)
+[![Docker](https://img.shields.io/badge/deploy-Docker%20Compose-2496ED.svg?logo=docker&logoColor=white)](#-quick-start-docker)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-181717.svg?logo=github)](https://nickzhang1102.github.io/agentTeams/)
 
 English | [简体中文](./README.md)
 
-## 🎯 Features
+![Agent Teams home](website/screenshots/desktop-home.png)
 
-### Core
-- ✅ **JWT authentication** - Secure user registration & login
-- ✅ **SSE streaming chat** - Real-time AI conversation experience
-- ✅ **Markdown rendering** - Rich text display with code highlighting
-- ✅ **File management** - Upload / download / preview / versioning
-- ✅ **Conversation management** - CRUD, archiving, sharing
-- ✅ **Knowledge graph** - D3 visualization, GraphRAG retrieval, gap analysis
+[Project website](https://nickzhang1102.github.io/agentTeams/) · [Quick start](#-quick-start-docker) · [Screenshots](#-screenshots) · [Contributing](#-contributing) · [☕ Buy the author a coffee](#-support-the-project)
 
-### Agent system
-- ✅ **100+ built-in expert agents** - Covering medical specialties, business roles, financial futures, and more
-- ✅ **Agent teamwork** - Parallel execution with intelligent aggregation
-- ✅ **Leader Agent** - Requirement assessment, team formation (DAG orchestration), result synthesis
-- ✅ **AgentPack / workflow templates** - Agent bundle management and one-click launch templates
+> **Status**: This project is public and in an early stage — trials and feedback are welcome. Before deploying to the public internet, complete the required items in the [Security](#-security) section.
 
-> Note: Some business/finance agents are named after public figures (e.g. "CEO (Bezos mental model)"). This is solely a tribute to and borrowing of their publicly shared methodologies and thinking styles — no affiliation, endorsement, or representation is implied. Medical agents are named after clinical departments; see the [medical disclaimer](#️-medical-disclaimer) for their intended scope.
+---
 
-### UI enhancements
-- ✅ **Dark mode** - One-click theme switching
-- ✅ **Export** - PDF / image export
-- ✅ **i18n** - Chinese / English interface
-- ✅ **Admin console** - Agent editing, tool configuration, performance monitoring
+## 🎯 Why Agent Teams
 
-## 🔒 Security
+Most AI products give you a chat window; complex problems usually need a **team**. If you have ever tried to use AI for real work, these will sound familiar:
 
-- Authentication via JWT + httpOnly Cookie (SameSite=Strict)
-- Passwords hashed with pbkdf2 + RSA-encrypted transmission
-- Mandatory secret validation at startup (`SECRET_KEY` / `JWT_SECRET_KEY` — refuses to boot if missing or too weak)
-- For public self-hosted deployments, always set `APP_ENV=production` and change default credentials
+| Reality | Agent Teams' answer |
+|---------|----------------|
+| 🤖 A single chatbot has one point of view and loses the big picture on complex problems | Describe your problem and the **Leader auto-assembles an expert team** — 107 domain experts cross-checking from multiple angles |
+| 🔁 Consulting several AIs one by one and copy-pasting context back and forth | The Leader orchestrates everything: requirement assessment → team formation → **tasks decomposed into a DAG executed in parallel** → one synthesized report |
+| 🧰 Professional questions lack structured methodology, and prompts are improvised every time | 107 built-in experts across medicine, business roles, finance and futures — each carrying its own domain framework, ready out of the box |
+| 🕳️ The AI gives a conclusion and stops — the process is a black box with no evidence trail | Subtask decomposition and **raw tool outputs are persisted end-to-end**, so reports drill down to the original evidence |
+| ☁️ Sensitive material you would rather not hand to a third-party platform | **Fully self-hosted**: data stays in your own PostgreSQL; LLM and search credentials are configured inside the project and stored encrypted |
 
-## 🚀 Quick Start
+Agent Teams is built for individuals and small teams who want an "AI team", not an "AI chat window": self-deploy with one command, responsive on desktop and mobile, bilingual UI — AI does the organizing and analysis, and the final judgment always stays yours.
 
-### Option 1: Docker deployment (recommended)
+---
+
+## ✨ Features
+
+### 🤖 Multi-agent orchestration
+| Feature | Description |
+|------|------|
+| 🧠 **Leader Agent** | Requirement assessment → team formation → task decomposition into a **DAG execution plan** → batched parallel execution → result synthesis, no manual intervention |
+| 🔍 **Transparent & traceable** | Subtask decomposition and raw tool outputs are persisted; the final report drills down to original evidence |
+| 🔄 **Dynamic subtasks** | Subtasks can be appended during execution, guarded by upper limits |
+| 🧯 **Fault-tolerant execution** | A single tool failure does not abort the run — partial results still feed subsequent reasoning |
+
+### 👥 Expert matrix
+| Feature | Description |
+|------|------|
+| 👥 **107 built-in experts** | Medical specialties (internal/surgical/subspecialty/diagnostics), business roles (CEO·CTO·CFO·Product·UI·Interaction), finance & futures (CIO·CRO·Quant·macro/steel/nonferrous/agriculture analysts…), dynamically categorized and ready to use |
+| 📦 **AgentPacks** | Bundle frequently used experts into packs — system presets work instantly, clones are editable |
+| 📋 **Workflow templates** | Preconfigured teams and assessment thresholds, launched with one click |
+
+> Note: some business/finance agents are named after public figures (e.g. "CEO (Bezos mental model)"). This is solely a tribute to and borrowing of their publicly shared methodologies and thinking styles — no affiliation, endorsement, or representation is implied. Medical agents are named after clinical departments; see the [medical disclaimer](#️-medical-disclaimer) for their intended scope.
+
+### 💬 Chat experience
+| Feature | Description |
+|------|------|
+| ⚡ **SSE streaming** | Typewriter-style real-time output with live per-agent execution status |
+| 📄 **Rich text & export** | Markdown + code highlighting; export reports as PDF / image and share conversations |
+| 🌗 **Dark mode & i18n** | One-click theme switching; Chinese / English interface; responsive mobile layout |
+| 💡 **Suggested questions** | Follow-up directions recommended after each answer |
+
+### 🧠 Knowledge & platform
+| Feature | Description |
+|------|------|
+| 🕸️ **Knowledge graph** | D3 visualization, GraphRAG retrieval, gap analysis |
+| 📎 **Document understanding** | PDF / DOCX / XLSX / PPTX parsing with OCR, file versioning |
+| 🧩 **MCP tool ecosystem** | MCP tool registration and management, full tool-call audit logs |
+| 🖥️ **Admin console** | Dashboard statistics, visual agent editing, performance monitoring, system settings |
+
+---
+
+## 📸 Screenshots
+
+> All screenshots below were captured from the current frontend loaded with fixed fictional demo data. No real user information is included.
+
+**Final report** — expert conclusions synthesized into a structured report that drills down to evidence
+
+![Final report](website/screenshots/desktop-final-report.png)
+
+**Orchestration view** — the Leader decomposes tasks into stages and subtasks; every agent's status is live
+
+![Orchestration view](website/screenshots/desktop-conversation-detail.png)
+
+### 📁 More screenshots (expert matrix / templates / admin / settings)
+
+**Agent gallery** — 107 domain experts categorized by field
+
+![Agent gallery](website/screenshots/desktop-agents.png)
+
+**Team presets** — system AgentPacks and workflow templates, one click away
+
+![Team presets](website/screenshots/desktop-templates.png)
+
+**Admin console** — dashboard statistics, performance monitoring and system settings in one place
+
+![Admin console](website/screenshots/desktop-admin.png)
+
+**Project settings** — LLM and search credentials configured in-project, stored encrypted
+
+![Project settings](website/screenshots/desktop-project-settings.png)
+
+**Mobile**
+
+| ![Mobile home](website/screenshots/mobile-home.png) | ![Mobile orchestration](website/screenshots/mobile-conversation.png) | ![Mobile agents](website/screenshots/mobile-agents.png) | ![Mobile templates](website/screenshots/mobile-templates.png) |
+|---|---|---|---|
+
+---
+
+## 🚀 Quick Start (Docker)
+
+The fastest way is to bring up the full stack with Docker Compose.
+
+### 1️⃣ Clone & configure
 
 ```bash
-# 1. Clone the project
 git clone https://github.com/nickzhang1102/agentTeams.git
 cd agentTeams
-
-# 2. Configure environment variables
 cp backend/.env.example backend/.env
-# Edit backend/.env to set database and root secrets; add LLM models in the admin console after startup
+```
 
-# 3. One-click deployment
-# Linux/macOS:
+Edit `backend/.env` — the following 2 variables are **required** (the deploy script enforces strength):
+
+| Variable | Description | How to generate |
+|------|------|----------|
+| `SECRET_KEY` | Application root secret (≥32 chars), also encrypts database credentials | `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `JWT_SECRET_KEY` | JWT signing secret (≥32 chars) | Same as above |
+
+> **No LLM configuration needed upfront**: after deployment, sign in and add any OpenAI-compatible model under "LLM Models" in the admin console; Exa/Tavily keys go under "System Settings". All credentials are stored encrypted.
+
+### 2️⃣ Deploy
+
+```bash
+# Linux / macOS
 ./scripts/docker-deploy.sh
 
-# Windows (PowerShell):
+# Windows (PowerShell)
 .\scripts\docker-deploy.ps1
-
-# 4. Access the app
-# Frontend: http://localhost:8380
-# Admin account: admin — the initial password is randomly generated;
-#            see `docker compose logs backend` or the host file
-#            backend/data/.admin_initial_password
-#           (admin/admin123 only applies to local development with APP_ENV=development).
-#            Change the password immediately after first login.
 ```
 
-See also: [Docker deployment guide](./DOCKER.md) (Chinese)
+The script builds images → starts services → runs database migrations (idempotent). The frontend is exposed on port `8380`; PostgreSQL and the backend bind only to the host loopback interface. See [DOCKER.md](./DOCKER.md) (Chinese) for details.
 
-### Option 2: Local development
+### 3️⃣ Access
 
-#### Prerequisites
-- Node.js 20.19+ (required by Vite 8)
-- Python 3.11+
-- PostgreSQL 18
-- An OpenAI-compatible LLM service account (configured in the admin console after startup)
+- Frontend: <http://localhost:8380>
+- Admin account `admin`, initial password is **randomly generated**: check `docker compose logs backend` or the host file `backend/data/.admin_initial_password` (`admin/admin123` only applies to local development with `APP_ENV=development`). **Change the password immediately after first login.**
 
-#### Backend
+---
+
+## 💻 Local development
+
+Prerequisites: Node.js 20.19+ · Python 3.11+ · PostgreSQL 18 · an OpenAI-compatible LLM service account
 
 ```bash
+# Backend (http://localhost:5000)
 cd backend
-
-# Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
+python -m venv venv && source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# Install the bundled OpenHarness framework (required for local dev; handled automatically in Docker)
-pip install -e ../OpenHarness
-
-# Configure environment variables
-cp .env.example .env
-# Edit .env to set DATABASE_URL, SECRET_KEY, and JWT_SECRET_KEY
-
-# Initialize the database
-alembic upgrade head
-
-# Create the default admin account (default password admin123 — change it immediately after first login)
-python init_admin.py
-
-# Start the server
+pip install -e ../OpenHarness                        # bundled execution framework, required for local dev
+cp .env.example .env                                 # set DATABASE_URL / SECRET_KEY / JWT_SECRET_KEY
+alembic upgrade head                                 # initialize the database
+python init_admin.py                                 # create admin (admin/admin123 under development)
 python run.py
-```
 
-LLM models are configured in the admin console under "LLM Models"; Exa/Tavily keys under "System Settings". Database credentials are encrypted with `SECRET_KEY`; before rotating that root key you must decrypt and re-encrypt the stored credentials with the old key, otherwise the service will refuse to read them.
-
-> Note: `init_admin.py` only uses the default password when `APP_ENV=development` is explicitly set (as in `.env.example`). Without it, a random password is generated and printed.
-
-#### Frontend
-
-```bash
+# Frontend (http://localhost:5173, new terminal)
 cd frontend
-
-# Install dependencies
 npm install
-
-# Configure environment variables
-cp .env.example .env
-
-# Start the dev server
 npm run dev
 ```
 
-Visit http://localhost:5173
+Full steps and troubleshooting: [QUICKSTART.md](./QUICKSTART.md) (Chinese).
 
-See also: [Quick start guide](./QUICKSTART.md) (Chinese)
+---
 
-## 📁 Project structure
+## 🔒 Security
 
-```
-agentTeams/
-├── backend/              # FastAPI backend
-│   ├── app.py           # Application factory
-│   ├── models.py        # Data models
-│   ├── api/             # RESTful routes
-│   ├── services/        # Domain services
-│   ├── leader/          # LangGraph orchestration layer
-│   └── tests/           # Tests
-│
-├── frontend/            # Vue3 frontend
-│   ├── src/
-│   │   ├── views/      # Page components
-│   │   ├── components/ # UI components
-│   │   ├── stores/     # Pinia state management
-│   │   └── locales/    # i18n messages
-│   └── e2e/             # Playwright E2E tests
-│
-├── OpenHarness/          # Bundled agent execution framework (MIT)
-│
-├── .claude/              # Agent configuration
-│   └── agents/         # Built-in expert agent definitions
-│
-├── docker/              # Docker configuration
-│   └── init-db.sql     # Database initialization
-│
-├── scripts/             # Deployment scripts
-│   ├── docker-deploy.sh
-│   └── docker-deploy.ps1
-│
-├── website/             # GitHub Pages site
-│   ├── index.html      # Single-page site (light tech-blue theme)
-│   └── sponsor/        # Sponsorship QR codes
-│
-├── docker-compose.yml   # Docker Compose configuration
-├── DOCKER.md           # Docker guide (Chinese)
-└── QUICKSTART.md       # Quick start (Chinese)
-```
+- **Auth & transport**: JWT + httpOnly Cookie (SameSite=Strict); passwords hashed with pbkdf2 + RSA-encrypted transmission
+- **Secret governance**: `SECRET_KEY` / `JWT_SECRET_KEY` are validated at startup — boot refuses to proceed when missing or too weak (fail-closed); database credentials are encrypted with the root secret, rotation documented in `.env.example`
+- **Upload protection**: uploads are validated via streaming chunk checks to prevent memory exhaustion from oversized files
+- **Production posture by default**: everything starts in production mode unless `APP_ENV=development` is explicitly set
 
-> `OpenHarness/` is a bundled third-party subproject licensed under MIT (upstream OpenHarness project), installed via `pip install -e`.
+Required changes for public deployments: strong random secrets, changed default admin password, HTTPS terminated by a reverse proxy with only ports 80/443 open, regular database backups. See [DOCKER.md](./DOCKER.md) and [SECURITY.md](./SECURITY.md) (Chinese).
 
-## 🛠️ Tech stack
+---
 
-### Backend
-- **FastAPI** - Web framework
-- **SQLAlchemy 2.0** - ORM
-- **PostgreSQL 18** - Database (pgvector index)
-- **LangGraph** - Multi-agent orchestration
-- **psycopg 3.3** - PostgreSQL driver
-- **python-jose** - JWT authentication
-- **OpenAI SDK** - LLM API integration (OpenAI-compatible)
+## ⚠️ Medical disclaimer
 
-### Frontend
-- **Vue 3.4** - UI framework
-- **Vite 8** - Build tool
-- **Pinia** - State management
-- **Element Plus** - UI component library
-- **D3.js** - Knowledge graph visualization
-- **Marked** - Markdown parsing
+The built-in medical-domain agents are intended solely for **organizing and assisting understanding of health information**. Their output does not constitute medical diagnosis, treatment advice, or prescriptions, and is not intended for use as a medical device. All clinical decisions must be made by licensed physicians. See [DISCLAIMER.md](./DISCLAIMER.md) (Chinese).
 
-### Deployment
-- **Docker** - Containerization
-- **Docker Compose** - Service orchestration
-- **Nginx** - Frontend server
-- **Uvicorn / Gunicorn** - ASGI server
-
-## 🔌 API endpoints (excerpt)
-
-### Auth
-- `POST /api/auth/register` - Register
-- `POST /api/auth/login` - Login
-- `GET /api/auth/me` - Current user
-
-### Conversations
-- `GET /api/conversations` - List conversations
-- `POST /api/conversations` - Create conversation
-- `GET /api/conversations/:id` - Conversation detail
-- `PUT /api/conversations/:id` - Update conversation
-- `DELETE /api/conversations/:id` - Delete conversation
-
-### Agents & teams
-- `GET /api/agents` - List agents
-
-### Leader & workflows
-- `POST /api/leader/start` - Start a Leader session
-- `GET /api/agent-packs` - List agent packs
-- `POST /api/workflow-templates/{id}/apply` - Apply a workflow template to launch instantly
-
-## 🧪 Testing
-
-### Backend
-
-> **Prerequisites**: PostgreSQL 18 must be running locally, and a dedicated test database must exist:
->
-> ```sql
-> CREATE DATABASE agent_teams_test;
-> ```
->
-> Full details are documented in the comments at the top of `backend/.env.example` (`TEST_DATABASE_URL`).
-
-```bash
-cd backend
-
-# Run all tests
-python -m pytest tests/ -v
-```
-
-### Frontend
-
-```bash
-cd frontend
-
-# Unit tests (Vitest)
-npm run test
-
-# E2E tests (Playwright)
-npm run test:e2e
-
-# Build verification
-npm run build
-```
-
-> **E2E prerequisites**:
-> - A full backend service must be running (API reachable);
-> - Run `npx playwright install chromium` before first use;
-> - The admin suite requires an account manually promoted to administrator and not locked out, provided via the `E2E_ADMIN_USER` / `E2E_ADMIN_PASSWORD` environment variables (defaults are for local E2E only).
-
-## 📝 Environment variables
-
-### Backend (`.env`)
-
-```bash
-# Required infrastructure settings
-SECRET_KEY=your-secret-key
-JWT_SECRET_KEY=your-jwt-secret
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/agent_teams
-
-# LLM and Exa/Tavily credentials are configured in the admin console and stored encrypted.
-# Optional
-FILE_STORAGE_PATH=data/files
-WORKSPACE_DIR=data/workspace
-AGENTS_DIR=../.claude/agents
-```
-
-Generating secrets:
-
-```bash
-python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-### Frontend (`.env`)
-
-The frontend proxies `/api` requests through Vite (dev) or Nginx (production) — no extra configuration needed.
-
-## 🐳 Docker commands
-
-```bash
-# Start services
-docker compose up -d
-
-# Stop services
-docker compose down
-
-# View logs
-docker compose logs -f
-
-# Enter containers
-docker compose exec backend bash
-docker compose exec postgres psql -U postgres -d agent_teams
-
-# Back up the database
-docker compose exec postgres pg_dump -U postgres agent_teams > backup.sql
-
-# Restore the database
-cat backup.sql | docker compose exec -T postgres psql -U postgres agent_teams
-```
-
-## 📚 Documentation
-
-- [Quick start guide](./QUICKSTART.md) - Local development and Docker deployment (Chinese)
-- [Docker deployment guide](./DOCKER.md) - Detailed Docker configuration (Chinese)
-- [Medical AI disclaimer](./DISCLAIMER.md) - Scope of use and risk notice (Chinese)
-
-## 🤝 Contributing
-
-1. Fork the project
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'feat: add some feature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Commit conventions
-- `feat:` new features
-- `fix:` bug fixes
-- `docs:` documentation
-- `style:` code formatting
-- `refactor:` refactoring
-- `test:` tests
-- `chore:` build/tooling
+---
 
 ## 📄 License
 
 This project is available under a **dual-license** model:
 
 - **Open source**: licensed under [AGPL-3.0](./LICENSE). Offering this software to others as a network service (SaaS) also triggers the AGPL-3.0 source-sharing obligation.
-- **Commercial license**: organizations that cannot comply with AGPL-3.0 (closed-source commercial use, private SaaS deployments, etc.) may contact the maintainer for a commercial license. <!-- TODO: add commercial licensing contact -->
+- **Commercial license**: organizations that cannot comply with AGPL-3.0 (closed-source commercial use, private SaaS deployments, etc.) may contact the maintainer for a commercial license. nickzhang1102@163.com
 - The bundled [OpenHarness](./OpenHarness/) framework is MIT licensed. External contributions require signing a CLA to sustain the dual-license model — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-## ⚕️ Medical disclaimer
+Copyright © 2026 nickzhang1102 · GitHub [@nickzhang1102](https://github.com/nickzhang1102)
 
-The built-in medical-domain agents are intended solely for **organizing and assisting understanding of health information**. Their output does not constitute medical diagnosis, treatment advice, or prescriptions, and is not intended for use as a medical device. All clinical decisions must be made by licensed physicians. See [DISCLAIMER.md](./DISCLAIMER.md) (Chinese).
+---
 
-## 👥 Contact
+## 🤝 Contributing
 
-- GitHub: [@nickzhang1102](https://github.com/nickzhang1102)
+Contributions are welcome! Fork → create a feature branch → commit (Conventional Commits: `feat:` / `fix:` / `docs:` etc.) → open a Pull Request. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow.
 
 ---
 
@@ -361,6 +219,6 @@ If Agent Teams helps you, consider buying the author a coffee ☕
 
 | 💚 WeChat | 💙 Alipay |
 | :---: | :---: |
-| ![WeChat QR](website/sponsor/wechat.jpg) | ![Alipay QR](website/sponsor/alipay.jpg) |
+| ![WeChat QR](website/screenshots/wechat.jpg) | ![Alipay QR](website/screenshots/alipay.jpg) |
 
 A ⭐ Star is also greatly appreciated — it helps more people discover this project.
