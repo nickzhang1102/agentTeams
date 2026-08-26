@@ -7,7 +7,7 @@
 ## 变更记录 (Changelog)
 
 ### 2026-08-26
-- **新增全局底部状态栏（对齐 OncoPath）**: 新增 `components/AppFooter.vue`（fixed 底栏：品牌版本/GitHub/赞助/协议/署名，移动端细条）与 `components/SponsorDialog.vue`（微信+支付宝双码弹窗）；新增 `composables/useAppVersion.js`（`/api/health` 版本号）与 `composables/useResponsive.js`（768 断点）；`utils/constants.js` 增 `REPO_URL`；`design-system.scss` 增 `--footer-height: 32px`；ChatLayout/ConversationDisplay/admin 布局高度改 `calc(100vh - var(--footer-height))`，ThemeToggle/beginner-help 抬升；embed 路由不展示；i18n 双语文案（common.footer/common.sponsor）
+- **新增全局底部状态栏（对齐 OncoPath）**: 新增 `components/AppFooter.vue`（fixed 底栏：品牌版本/GitHub/赞助/协议/署名，移动端细条）与 `components/SponsorDialog.vue`（赞助弹窗：5 档金额卡 → 各档专属微信收款码 + 支付宝通用码入口，图片自 OncoPath 拷入）；新增 `composables/useAppVersion.js`（`/api/health` 版本号）与 `composables/useResponsive.js`（768 断点）；`utils/constants.js` 增 `REPO_URL`；`design-system.scss` 增 `--footer-height: 32px`；ChatLayout/ConversationDisplay/admin 布局高度改 `calc(100vh - var(--footer-height))`，ThemeToggle/beginner-help 抬升；embed 路由不展示；i18n 双语文案（common.footer/common.sponsor）
 
 ### 2026-08-23
 - **移除计费与卡密界面（开源化）**: 删除 `Billing.vue`、`admin/CDKeys.vue`、`stores/billing.js`、billing i18n 与路由（`/billing`、`/admin/cdkeys`）；Home/Login 移除余额检查跳转；e2e 计费用例删除

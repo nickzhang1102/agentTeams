@@ -5,7 +5,7 @@
 ## 变更记录 (Changelog)
 
 ### 2026-08-26
-- **前端新增全局底部状态栏（对齐 OncoPath）**: 移植姊妹项目 OncoPath 的 AppFooter 模式——fixed 底栏展示品牌版本（`/api/health` 下发 APP_VERSION）| GitHub | 赞助弹窗 | © 2026 AGPL-3.0 | 署名，移动端收窄为细条；新增 `AppFooter.vue`/`SponsorDialog.vue`（微信+支付宝双码，复用官网收款图）与 `useAppVersion`/`useResponsive` composables；embed 嵌入路由不展示；`design-system.scss` 新增 `--footer-height: 32px`，固定视口页（ChatLayout/ConversationDisplay/admin 布局）高度改 `calc(100vh - var(--footer-height))`，ThemeToggle/新手帮助等浮动件抬升至状态栏上方；文案走 i18n 双语。
+- **前端新增全局底部状态栏（对齐 OncoPath）**: 移植姊妹项目 OncoPath 的 AppFooter 模式——fixed 底栏展示品牌版本（`/api/health` 下发 APP_VERSION）| GitHub | 赞助弹窗 | © 2026 AGPL-3.0 | 署名，移动端收窄为细条；新增 `AppFooter.vue`/`SponsorDialog.vue`（赞助弹窗对齐 OncoPath：5 档金额卡 ¥5/¥10/¥20/¥50/¥99 → 各档专属微信收款码，另留支付宝通用码入口，图片自 OncoPath 拷入 `assets/sponsor/`）与 `useAppVersion`/`useResponsive` composables；embed 嵌入路由不展示；`design-system.scss` 新增 `--footer-height: 32px`，固定视口页（ChatLayout/ConversationDisplay/admin 布局）高度改 `calc(100vh - var(--footer-height))`，ThemeToggle/新手帮助等浮动件抬升至状态栏上方；文案走 i18n 双语。
 
 ### 2026-08-26
 - **website 官网全面改版（对齐 OncoPath 官网）**: 布局骨架全面参考姊妹项目 OncoPath——Hero 改左右分栏（超大渐变字 + 深色窗框内嵌真实截图 + 浮动徽章），删除原 CSS 动画模拟的 session-demo 会话演示与 flow-anim 点阵动画；新增 `#showcase` 界面预览区（桌面 7 屏 + 移动 4 屏逐屏滚动叙事 + noscript 回退画廊）；赞助区补微信/支付宝收款码卡片（复用作者 OncoPath 同款码）；`website/screenshots/` 新增 11 张真实界面截图（桌面 1600×1000 七张 + 移动 390×844 四张），由本地起后端+造演示数据后 Playwright 实拍。
