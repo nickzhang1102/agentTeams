@@ -34,7 +34,12 @@
     >
       <template #title>{{ t('admin.agentteams.newKeyGenerated') }}</template>
       <div class="generated-key-row">
-        <el-input v-model="generatedKey" readonly />
+        <el-input
+          v-model="generatedKey"
+          type="textarea"
+          :autosize="{ minRows: 1, maxRows: 3 }"
+          readonly
+        />
         <el-button type="primary" :icon="CopyDocument" @click="copyGeneratedKey">{{ t('admin.actions.copy') }}</el-button>
       </div>
     </el-alert>
@@ -52,14 +57,6 @@
       <el-form label-width="150px" class="config-form">
         <el-form-item :label="t('admin.agentteams.enableIntegration')">
           <el-switch v-model="form.enabled" />
-        </el-form-item>
-        <el-form-item :label="t('admin.agentteams.setKeyManually')">
-          <el-input
-            v-model="form.integration_key"
-            type="password"
-            show-password
-            :placeholder="t('admin.agentteams.keyPlaceholder')"
-          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="saving" @click="saveConfig">{{ t('admin.agentteams.saveConfig') }}</el-button>
@@ -86,14 +83,12 @@ const generatedKey = ref('')
 
 const form = reactive({
   enabled: true,
-  integration_key: '',
 })
 
 const config = computed(() => adminStore.agentteamsIntegration)
 
 function applyConfig(data) {
   form.enabled = Boolean(data.enabled)
-  form.integration_key = ''
   generatedKey.value = data.generated_integration_key || ''
 }
 
@@ -114,12 +109,11 @@ async function loadConfig() {
 async function saveConfig() {
   saving.value = true
   try {
-    // Keep the everyday form limited to the connection contract.  Token TTL
-    // and service-account identity remain deployment defaults/advanced data;
-    // omitting them prevents a normal save from resetting existing values.
+    // Keep the everyday form limited to the connection contract.  Manual key
+    // entry stays behind the REST API only: an omitted integration_key means
+    // "keep the stored hash" server-side (same for TTL / service account).
     const result = await adminStore.updateAgentTeamsIntegration({
       enabled: form.enabled,
-      integration_key: form.integration_key,
     })
     if (result.success) {
       applyConfig(result.config)
@@ -213,8 +207,15 @@ onMounted(loadConfig)
 
 .generated-key-row {
   display: flex;
+  align-items: flex-start;
   gap: 10px;
   margin-top: 8px;
+
+  :deep(.el-textarea__inner) {
+    word-break: break-all;
+    resize: none;
+    font-family: Consolas, Menlo, 'Courier New', monospace;
+  }
 }
 
 .card-header {
