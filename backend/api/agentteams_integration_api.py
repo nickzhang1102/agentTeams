@@ -17,7 +17,6 @@ from services.agentteams_integration_launch import (
     get_agentteams_embed_status,
     get_agentteams_launch_by_request_id,
     launch_agentteams_consultation,
-    renew_agentteams_embed_token,
     resolve_agentteams_embed_answer_session,
     persist_agentteams_workflow_progress_events,
     claim_agentteams_answer_launch,
@@ -52,13 +51,6 @@ class AgentTeamsLaunchRequest(BaseModel):
     metadata: Optional[dict[str, Any]] = None
 
 
-class AgentTeamsRenewEmbedRequest(BaseModel):
-    source_conversation_id: Any
-    request_id: Optional[str] = Field(default=None, max_length=100)
-    agentteams_conversation_id: Optional[int] = None
-    agentteams_session_id: Optional[int] = None
-
-
 class AgentTeamsEmbedAnswersRequest(BaseModel):
     session_id: int = Field(..., gt=0)
     answers: List[str] = Field(..., min_length=1)
@@ -74,15 +66,6 @@ class IntegrationLaunchRequest(BaseModel):
     message: str = Field(..., min_length=1)
     locale: str = Field(default='zh-CN', max_length=20)
     metadata: Optional[dict[str, Any]] = None
-
-
-class IntegrationRenewAccessRequest(BaseModel):
-    """与提供商无关的访问续期引用；由适配器解释这些不透明引用。"""
-
-    conversation_ref: Optional[str] = Field(default=None, max_length=100)
-    request_id: Optional[str] = Field(default=None, max_length=100)
-    external_conversation_id: Optional[int] = None
-    external_session_id: Optional[int] = None
 
 
 def _raise_launch_error(error: AgentTeamsLaunchError) -> None:
@@ -211,28 +194,6 @@ def reconcile_generic_consultation(
         _raise_launch_error(error)
 
 
-@generic_router.post('/{client_key}/embed-sessions/renew')
-def renew_generic_access(
-    client_key: str,
-    request: IntegrationRenewAccessRequest,
-    response: Response,
-    x_integration_key: Optional[str] = Header(default=None, alias='X-Integration-Key'),
-    db_session: Session = Depends(get_db),
-):
-    """为现有启动续期访问；绝不创建新的启动请求。"""
-    _set_embed_security_headers(response)
-    register_builtin_adapters()
-    refs = request.model_dump(exclude_none=True)
-    try:
-        gateway = IntegrationGateway(db_session)
-        client = gateway.authenticate(client_key, x_integration_key)
-        return gateway.renew_access(client, refs=refs)
-    except IntegrationClientError as error:
-        raise HTTPException(status_code=error.status_code, detail={'error': error.error_code, 'message': error.message})
-    except AgentTeamsLaunchError as error:
-        _raise_launch_error(error)
-
-
 @router.post("/consultation-launches")
 async def create_consultation_launch(
     request: AgentTeamsLaunchRequest,
@@ -293,28 +254,6 @@ def get_consultation_launch(
             db_session=db_session,
             request_id=request_id,
             integration_key=x_integration_key,
-        )
-    except AgentTeamsLaunchError as error:
-        _raise_launch_error(error)
-
-
-@router.post("/embed-sessions/renew")
-async def renew_embed_session(
-    request: AgentTeamsRenewEmbedRequest,
-    response: Response,
-    x_integration_key: Optional[str] = Header(default=None, alias="X-Integration-Key"),
-    db_session: Session = Depends(get_db),
-):
-    """为现有的 Agent Teams 启动请求签发一个新的嵌入令牌。"""
-    _set_embed_security_headers(response)
-    try:
-        return renew_agentteams_embed_token(
-            db_session=db_session,
-            source_conversation_id=str(request.source_conversation_id),
-            request_id=request.request_id,
-            integration_key=x_integration_key,
-            agentteams_conversation_id=request.agentteams_conversation_id,
-            agentteams_session_id=request.agentteams_session_id,
         )
     except AgentTeamsLaunchError as error:
         _raise_launch_error(error)

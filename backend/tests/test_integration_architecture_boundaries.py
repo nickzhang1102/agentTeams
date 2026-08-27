@@ -40,7 +40,6 @@ ALLOWED_LEGACY_BRIDGE = 'services.agentteams_integration_account'
 # 仅为旧版路由定义的 Agent Teams 负载模式类名。
 AGENTTEAMS_PAYLOAD_SCHEMA_NAMES = {
     'AgentTeamsLaunchRequest',
-    'AgentTeamsRenewEmbedRequest',
     'AgentTeamsEmbedAnswersRequest',
 }
 
@@ -115,7 +114,7 @@ def test_gateway_top_level_imports_stay_provider_neutral():
 def test_adapter_spi_method_surface_is_stable():
     from services.integration_gateway import IntegrationAdapter
 
-    expected = {'launch', 'get_status', 'reconcile', 'renew_access', 'schedule_launch'}
+    expected = {'launch', 'get_status', 'reconcile', 'schedule_launch'}
     actual = {
         name
         for name in dir(IntegrationAdapter)
@@ -128,12 +127,9 @@ def test_adapter_spi_method_surface_is_stable():
 
 
 def test_provider_neutral_schemas_have_no_patient_specific_fields():
-    from api.agentteams_integration_api import (
-        IntegrationLaunchRequest,
-        IntegrationRenewAccessRequest,
-    )
+    from api.agentteams_integration_api import IntegrationLaunchRequest
 
-    for schema in (IntegrationLaunchRequest, IntegrationRenewAccessRequest):
+    for schema in (IntegrationLaunchRequest,):
         for field_name in schema.model_fields:
             lowered = field_name.lower()
             assert not any(token in lowered for token in PATIENT_FIELD_TOKENS), (

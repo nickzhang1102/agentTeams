@@ -50,14 +50,6 @@ class IntegrationAdapter(Protocol):
         client: IntegrationClientContext,
     ) -> dict[str, Any]: ...
 
-    def renew_access(
-        self,
-        db_session: Session,
-        *,
-        refs: dict[str, Any],
-        client: IntegrationClientContext,
-    ) -> dict[str, Any]: ...
-
     def schedule_launch(
         self,
         db_session: Session,
@@ -147,13 +139,6 @@ class IntegrationGateway:
             self.db_session, request_id=request_id, client=client
         )
 
-    def renew_access(self, client: IntegrationClientContext, *, refs: dict[str, Any]) -> dict[str, Any]:
-        if client.capabilities.get('renew_access') is not True and client.capabilities.get('embed_renew') is not True:
-            raise IntegrationClientError(403, 'integration_capability_disabled', 'Integration renew capability is disabled')
-        return self._adapter_for(client).renew_access(
-            self.db_session, refs=refs, client=client
-        )
-
     def schedule_launch(
         self,
         client: IntegrationClientContext,
@@ -222,23 +207,6 @@ def register_builtin_adapters() -> None:
             # 协调刻意保持只读；任何随后的状态转换由持久化工作线程负责，
             # 而非此端点。
             return self.get_status(db_session, request_id=request_id, client=client)
-
-        def renew_access(self, db_session, *, refs, client):
-            from services.agentteams_integration_launch import renew_agentteams_embed_token
-            result = renew_agentteams_embed_token(
-                db_session=db_session,
-                source_conversation_id=str(refs.get('conversation_ref') or refs.get('source_conversation_id') or ''),
-                request_id=(
-                    self._storage_request_id(str(refs['request_id']), client)
-                    if refs.get('request_id') else None
-                ),
-                integration_key=None,
-                agentteams_conversation_id=refs.get('external_conversation_id'),
-                agentteams_session_id=refs.get('external_session_id'),
-                integration_context=client,
-            )
-            result['status'] = self._normalize_status(result.get('status'))
-            return result
 
         def schedule_launch(self, db_session, *, result, request_id, client):
             if not result.pop('_start_background', False):

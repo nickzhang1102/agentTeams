@@ -19,7 +19,7 @@
 10. [安全加固](#10-安全加固)
 11. [附录：手动部署（不用脚本）](#附录手动部署不用脚本)
 
-集成客户端生命周期、通用 launch/status/reconcile/renew 以及本地 embed access 撤销的运维流程，见[集成客户端与会诊对账运维指南](./integration-clients.md)。
+集成客户端生命周期、通用 launch/status/reconcile 以及本地 embed access 撤销的运维流程，见[集成客户端与会诊对账运维指南](./integration-clients.md)。
 
 ---
 

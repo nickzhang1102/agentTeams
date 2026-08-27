@@ -11,7 +11,6 @@ from typing import Any, AsyncGenerator, Callable
 from sqlalchemy import and_, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.exc import MultipleResultsFound
 
 from config import Config
 from context.context_builder import ContextBuilder
@@ -865,61 +864,6 @@ def get_agentteams_launch_by_request_id(
         'source_conversation_id': launch.source_conversation_id,
         'error_code': launch.error_code,
     }
-
-
-def renew_agentteams_embed_token(
-    db_session: Session,
-    source_conversation_id: str,
-    integration_key: str | None,
-    request_id: str | None = None,
-    agentteams_conversation_id: int | None = None,
-    agentteams_session_id: int | None = None,
-    integration_context: IntegrationClientContext | None = None,
-) -> dict:
-    """为现有的 Agent Teams 启动请求签发新的嵌入令牌。"""
-    if integration_context is None:
-        _verify_integration_key(db_session, integration_key)
-
-    source_conversation_id = str(source_conversation_id or '').strip()
-    if not source_conversation_id:
-        raise AgentTeamsLaunchError(400, 'invalid_payload', 'source_conversation_id is required')
-
-    query = db_session.query(AgentTeamsLaunch).filter_by(source=AGENTTEAMS_SOURCE)
-    if integration_context is not None:
-        query = query.filter_by(integration_client_key=integration_context.client_key)
-    else:
-        # 遗留端点只能为遗留客户端自己的启动记录续签；
-        # 共享适配器客户端的前缀化 ID 不得通过内部键猜测换取嵌入令牌。
-        query = query.filter_by(integration_client_key=AGENTTEAMS_SOURCE)
-    normalized_request_id = str(request_id or '').strip()
-    if normalized_request_id:
-        query = query.filter_by(request_id=normalized_request_id)
-    else:
-        query = query.filter_by(source_conversation_id=source_conversation_id)
-    if agentteams_conversation_id is not None:
-        query = query.filter_by(agentteams_conversation_id=agentteams_conversation_id)
-    if agentteams_session_id is not None:
-        query = query.filter_by(agentteams_leader_session_id=agentteams_session_id)
-
-    try:
-        launch = query.with_for_update().one_or_none()
-    except MultipleResultsFound as exc:
-        raise AgentTeamsLaunchError(
-            409,
-            'agentteams_launch_ambiguous',
-            'Multiple Agent Teams launches match; request_id is required',
-        ) from exc
-    if not launch or not launch.agentteams_conversation_id:
-        raise AgentTeamsLaunchError(404, 'agentteams_launch_not_found', 'Agent Teams launch not found')
-
-    embed_token = _create_embed_token(
-        db_session,
-        launch.agentteams_conversation_id,
-        launch.agentteams_leader_session_id,
-        integration_client_key=launch.integration_client_key,
-        revoke_existing=False,
-    )
-    return _launch_response(db_session, launch, embed_token, status=launch.status or 'created', start_background=False)
 
 
 def revoke_agentteams_embed_access(

@@ -263,7 +263,7 @@ def test_generic_gateway_does_not_claim_unregistered_adapter(client):
     assert response.json()['detail']['error'] == 'integration_adapter_unavailable'
 
 
-def test_generic_status_reconcile_and_renew_are_read_only(client, monkeypatch):
+def test_generic_status_and_reconcile_are_read_only(client, monkeypatch):
     monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
     session = TestSessionLocal()
     try:
@@ -295,7 +295,7 @@ def test_generic_status_reconcile_and_renew_are_read_only(client, monkeypatch):
         '/api/integrations/v1/agentteams/consultation-launches/generic-read-only-1/reconcile',
         headers={'X-Integration-Key': 'test-integration-key'},
     )
-    renew = client.post(
+    removed = client.post(
         '/api/integrations/v1/agentteams/embed-sessions/renew',
         json={
             'conversation_ref': 'generic-read-only-conversation',
@@ -307,7 +307,7 @@ def test_generic_status_reconcile_and_renew_are_read_only(client, monkeypatch):
     assert status.status_code == 200
     assert reconcile.status_code == 200
     assert status.json()['request_id'] == reconcile.json()['request_id'] == 'generic-read-only-1'
-    assert renew.status_code == 200
+    assert removed.status_code == 404
     after = TestSessionLocal()
     try:
         assert after.query(Conversation).count() == conversation_count
@@ -331,9 +331,6 @@ def test_multiple_clients_share_adapter_key_and_keep_request_namespaces_isolated
 
         def reconcile(self, db_session, *, request_id, client):
             return self.get_status(db_session, request_id=request_id, client=client)
-
-        def renew_access(self, db_session, *, refs, client):
-            return {'request_id': refs.get('request_id'), 'status': 'created'}
 
         def schedule_launch(self, db_session, *, result, request_id, client):
             result.pop('_start_background', None)
@@ -403,10 +400,6 @@ class _RecordingFixtureAdapter:
         self.calls.append(('reconcile', client.client_key, request_id))
         return self.get_status(db_session, request_id=request_id, client=client)
 
-    def renew_access(self, db_session, *, refs, client):
-        self.calls.append(('renew', client.client_key, dict(refs)))
-        return {'status': 'created', 'access_ref': 'fixture-access-1'}
-
     def schedule_launch(self, db_session, *, result, request_id, client):
         result.pop('_start_background', None)
 
@@ -425,7 +418,7 @@ def _seed_fixture_client(db_session, client_key, supplied_key, *, capabilities):
     db_session.commit()
 
 
-def test_second_adapter_supports_full_spi_including_renew(client):
+def test_removed_generic_renew_endpoint_is_not_routable(client):
     adapter = _RecordingFixtureAdapter()
     IntegrationAdapterRegistry.register(adapter)
     session = TestSessionLocal()
@@ -434,22 +427,19 @@ def test_second_adapter_supports_full_spi_including_renew(client):
             session,
             'fixture-full-spi',
             'fixture-full-spi-key',
-            capabilities={'launch': True, 'status_query': True, 'reconcile': True, 'renew_access': True},
+            capabilities={'launch': True, 'status_query': True, 'reconcile': True},
         )
     finally:
         session.close()
 
     try:
-        renewed = client.post(
+        removed = client.post(
             '/api/integrations/v1/fixture-full-spi/embed-sessions/renew',
             json={'conversation_ref': 'fixture-conversation', 'request_id': 'fixture-request-1'},
             headers={'X-Integration-Key': 'fixture-full-spi-key'},
         )
-        assert renewed.status_code == 200
-        assert renewed.json()['access_ref'] == 'fixture-access-1'
-        assert adapter.calls == [
-            ('renew', 'fixture-full-spi', {'conversation_ref': 'fixture-conversation', 'request_id': 'fixture-request-1'}),
-        ]
+        assert removed.status_code == 404
+        assert adapter.calls == []
     finally:
         IntegrationAdapterRegistry._adapters.pop('contract-fixture', None)
 
@@ -457,11 +447,10 @@ def test_second_adapter_supports_full_spi_including_renew(client):
 @pytest.mark.parametrize(
     'capabilities,method,path,body',
     (
-        ({'launch': True, 'renew_access': True}, 'get', '/api/integrations/v1/fixture-limited/consultation-launches/req-1', None),
-        ({'launch': True, 'status_query': True}, 'post', '/api/integrations/v1/fixture-limited/embed-sessions/renew', {'conversation_ref': 'c'}),
+        ({'launch': True}, 'get', '/api/integrations/v1/fixture-limited/consultation-launches/req-1', None),
         ({'status_query': True}, 'post', '/api/integrations/v1/fixture-limited/consultation-launches', {'message': 'x'}),
     ),
-    ids=['status_disabled', 'renew_disabled', 'launch_disabled'],
+    ids=['status_disabled', 'launch_disabled'],
 )
 def test_gateway_capability_denial_is_adapter_neutral(client, capabilities, method, path, body):
     adapter = _RecordingFixtureAdapter()
@@ -523,7 +512,7 @@ def test_second_adapter_launch_does_not_create_local_workflow_records(client):
         IntegrationAdapterRegistry._adapters.pop('contract-fixture', None)
 
 
-def test_shared_agentteams_adapter_cannot_cross_client_status_or_renew_by_external_ref(client, monkeypatch):
+def test_shared_agentteams_adapter_cannot_cross_client_status_by_external_ref(client, monkeypatch):
     monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
     session = TestSessionLocal()
     try:
@@ -536,7 +525,7 @@ def test_shared_agentteams_adapter_cannot_cross_client_status_or_renew_by_extern
                 credential_hash='sha256:' + hashlib.sha256(supplied_key.encode()).hexdigest(),
                 service_account_id=service_account.id,
                 enabled=True,
-                capabilities_json={'launch': True, 'status_query': True, 'reconcile': True, 'renew_access': True},
+                    capabilities_json={'launch': True, 'status_query': True, 'reconcile': True},
             ))
         session.commit()
     finally:
@@ -568,17 +557,8 @@ def test_shared_agentteams_adapter_cannot_cross_client_status_or_renew_by_extern
     assert cross_status.status_code == 200
     assert cross_status.json()['status'] == 'not_found'
 
-    cross_renew = client.post(
-        '/api/integrations/v1/tenant-b/embed-sessions/renew',
-        json={'conversation_ref': 'same-external-conversation'},
-        headers={'X-Integration-Key': 'tenant-b-key'},
-    )
-    assert cross_renew.status_code == 404
-    assert cross_renew.json()['detail']['error'] == 'agentteams_launch_not_found'
-
-
-def test_legacy_integration_key_cannot_renew_shared_adapter_launch(client, monkeypatch):
-    """遗留密钥不得为共享适配器客户端的启动记录换取嵌入令牌。"""
+def test_legacy_integration_key_cannot_access_shared_adapter_launch(client, monkeypatch):
+    """遗留密钥不得访问共享适配器客户端的启动记录。"""
     monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
     session = TestSessionLocal()
     try:
@@ -590,7 +570,7 @@ def test_legacy_integration_key_cannot_renew_shared_adapter_launch(client, monke
             credential_hash='sha256:' + hashlib.sha256(b'tenant-a-key').hexdigest(),
             service_account_id=service_account.id,
             enabled=True,
-            capabilities_json={'launch': True, 'status_query': True, 'reconcile': True, 'renew_access': True},
+            capabilities_json={'launch': True, 'status_query': True, 'reconcile': True},
         ))
         session.commit()
     finally:
@@ -603,40 +583,20 @@ def test_legacy_integration_key_cannot_renew_shared_adapter_launch(client, monke
     )
     assert launched.status_code == 200
 
-    # 遗留密钥按 request_id 与外部会话引用两条匹配路径都必须被隔离。
-    by_request = client.post(
-        '/api/integrations/agentteams/embed-sessions/renew',
-        json={'source_conversation_id': 'legacy-cross-conversation', 'request_id': 'tenant-a:legacy-cross-1'},
+    # 续期接口已移除：通用路径不存在，遗留路径不再接受 POST。
+    generic_removed = client.post(
+        '/api/integrations/v1/agentteams/embed-sessions/renew',
+        json={'conversation_ref': 'legacy-cross-conversation'},
         headers={'X-Integration-Key': 'test-integration-key'},
     )
-    assert by_request.status_code == 404
-    assert by_request.json()['detail']['error'] == 'agentteams_launch_not_found'
+    assert generic_removed.status_code == 404
 
-    by_conversation = client.post(
+    legacy_removed = client.post(
         '/api/integrations/agentteams/embed-sessions/renew',
-        json={'source_conversation_id': 'legacy-cross-conversation'},
+        json={'conversation_ref': 'legacy-cross-conversation'},
         headers={'X-Integration-Key': 'test-integration-key'},
     )
-    assert by_conversation.status_code == 404
-    assert by_conversation.json()['detail']['error'] == 'agentteams_launch_not_found'
-
-    # 正向回归：遗留密钥仍可续签自身命名空间内的启动记录。
-    legacy_launched = client.post(
-        '/api/integrations/agentteams/consultation-launches',
-        json=_payload(),
-        headers={'X-Integration-Key': 'test-integration-key', 'X-Request-Id': 'legacy-own-1'},
-    )
-    assert legacy_launched.status_code == 200
-
-    legacy_renewed = client.post(
-        '/api/integrations/agentteams/embed-sessions/renew',
-        json={
-            'source_conversation_id': _payload()['source_conversation_id'],
-            'request_id': 'legacy-own-1',
-        },
-        headers={'X-Integration-Key': 'test-integration-key'},
-    )
-    assert legacy_renewed.status_code == 200
+    assert legacy_removed.status_code == 405
 
 
 def test_generic_launch_accepts_long_request_id_for_shared_adapter_client(client, monkeypatch):
@@ -1659,7 +1619,7 @@ def test_embed_session_rejects_expired_token(client, monkeypatch):
     assert embed_response.json()['error'] == 'invalid_embed_token'
 
 
-def test_renew_embed_session_issues_new_token_without_new_conversation_or_usage(client, monkeypatch):
+def test_removed_renew_endpoint_does_not_issue_new_token(client, monkeypatch):
     monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
     session = TestSessionLocal()
     try:
@@ -1678,7 +1638,7 @@ def test_renew_embed_session_issues_new_token_without_new_conversation_or_usage(
     assert launch_response.status_code == 200
     launch_data = launch_response.json()
 
-    renew_response = client.post(
+    removed_response = client.post(
         '/api/integrations/agentteams/embed-sessions/renew',
         json={
             'source_conversation_id': '789',
@@ -1689,12 +1649,7 @@ def test_renew_embed_session_issues_new_token_without_new_conversation_or_usage(
         headers={'X-Integration-Key': 'test-integration-key'},
     )
 
-    assert renew_response.status_code == 200
-    renew_data = renew_response.json()
-    assert renew_data['agentteams_conversation_id'] == launch_data['agentteams_conversation_id']
-    assert renew_data['agentteams_session_id'] == launch_data['agentteams_session_id']
-    assert renew_data['embed_token'] != launch_data['embed_token']
-    assert renew_data['embed_path'].startswith('/embed/conversation/')
+    assert removed_response.status_code == 405
 
     old_token_response = client.get(
         f"/api/integrations/agentteams/embed-sessions/{launch_data['embed_token']}"
@@ -1705,13 +1660,13 @@ def test_renew_embed_session_issues_new_token_without_new_conversation_or_usage(
     try:
         assert session.query(Conversation).count() == 1
         assert session.query(DecisionRun).count() == 1
-        assert session.query(AgentTeamsEmbedToken).count() == 2
-        assert session.query(AgentTeamsEmbedToken).filter_by(revoked_at=None).count() == 2
+        assert session.query(AgentTeamsEmbedToken).count() == 1
+        assert session.query(AgentTeamsEmbedToken).filter_by(revoked_at=None).count() == 1
     finally:
         session.close()
 
 
-def test_renew_embed_session_uses_request_id_when_source_conversation_is_duplicated(client, monkeypatch):
+def test_removed_renew_endpoint_does_not_resolve_duplicate_source_refs(client, monkeypatch):
     monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
     session = TestSessionLocal()
     try:
@@ -1738,8 +1693,9 @@ def test_renew_embed_session_uses_request_id_when_source_conversation_is_duplica
     assert first.status_code == 200
     assert second.status_code == 200
 
+    first_data = first.json()
     second_data = second.json()
-    renewed = client.post(
+    removed = client.post(
         '/api/integrations/agentteams/embed-sessions/renew',
         json={
             'source_conversation_id': 'a-new-local-conversation-id',
@@ -1750,17 +1706,9 @@ def test_renew_embed_session_uses_request_id_when_source_conversation_is_duplica
         headers={'X-Integration-Key': 'test-integration-key'},
     )
 
-    assert renewed.status_code == 200
-    assert renewed.json()['agentteams_conversation_id'] == second_data['agentteams_conversation_id']
-    assert renewed.json()['agentteams_session_id'] == second_data['agentteams_session_id']
-
-    ambiguous = client.post(
-        '/api/integrations/agentteams/embed-sessions/renew',
-        json={'source_conversation_id': '789'},
-        headers={'X-Integration-Key': 'test-integration-key'},
-    )
-    assert ambiguous.status_code == 409
-    assert ambiguous.json()['detail']['error'] == 'agentteams_launch_ambiguous'
+    assert removed.status_code == 405
+    assert first_data['agentteams_conversation_id'] != second_data['agentteams_conversation_id']
+    assert first_data['embed_token'] != second_data['embed_token']
 
 
 def test_launch_preparation_failure_rolls_back_all_side_effects(client, monkeypatch):
@@ -2074,7 +2022,7 @@ async def test_answer_continuation_keeps_nonterminal_session_recoverable(db_sess
     assert launch.id in find_recoverable_agentteams_launch_ids(TestSessionLocal)
 
 
-def test_renew_embed_session_rejects_mismatched_conversation(client, monkeypatch):
+def test_removed_renew_endpoint_rejects_mismatched_conversation(client, monkeypatch):
     monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
     session = TestSessionLocal()
     try:
@@ -2092,7 +2040,7 @@ def test_renew_embed_session_rejects_mismatched_conversation(client, monkeypatch
     )
     assert launch_response.status_code == 200
 
-    renew_response = client.post(
+    removed_response = client.post(
         '/api/integrations/agentteams/embed-sessions/renew',
         json={
             'source_conversation_id': '789',
@@ -2101,8 +2049,7 @@ def test_renew_embed_session_rejects_mismatched_conversation(client, monkeypatch
         headers={'X-Integration-Key': 'test-integration-key'},
     )
 
-    assert renew_response.status_code == 404
-    assert renew_response.json()['detail']['error'] == 'agentteams_launch_not_found'
+    assert removed_response.status_code == 405
 
 
 def test_background_workflow_success_converges_launch_state(db_session, monkeypatch):

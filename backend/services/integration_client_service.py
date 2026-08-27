@@ -280,8 +280,6 @@ class IntegrationClientService:
                     'launch': True,
                     'status_query': True,
                     'reconcile': True,
-                    'renew_access': True,
-                    'embed_renew': True,
                 },
                 legacy_fallback=True,
             )
@@ -340,11 +338,16 @@ class IntegrationClientService:
                     'launch': True,
                     'status_query': True,
                     'reconcile': True,
-                    'renew_access': True,
-                    'embed_renew': True,
                 },
             )
             db_session.add(client)
+        # Normalize legacy rows so removed capabilities cannot survive an
+        # upgrade and accidentally re-enable a retired endpoint.
+        client.capabilities_json = {
+            'launch': True,
+            'status_query': True,
+            'reconcile': True,
+        }
         configured_key = _get_config_value(
             db_session, 'AGENTTEAMS_INTEGRATION_KEY', ''
         ).strip()

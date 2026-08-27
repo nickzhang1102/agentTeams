@@ -70,11 +70,6 @@ export function useAgentTeamsEmbedAccess({ token, leaderStore, t, locale, onSnap
     }, '*')
   }
 
-  function notifyParentRenewRequired() {
-    if (typeof window === 'undefined' || !window.parent) return
-    window.parent.postMessage({ type: 'agentteams:embed-renew-required' }, '*')
-  }
-
   function projectedSessionState(session) {
     const leaderState = session?.state || 'idle'
     if (TERMINAL_STATES.has(leaderState) || leaderState === 'questioning') return leaderState
@@ -302,7 +297,6 @@ export function useAgentTeamsEmbedAccess({ token, leaderStore, t, locale, onSnap
       const data = await response.json().catch(() => ({}))
       if (!isCurrent(requestGeneration)) return
       if (!response.ok) {
-        if (response.status === 401) notifyParentRenewRequired()
         throw new Error(data?.detail?.message || data?.message || t('leader.runtime.embedAccessDenied'))
       }
       snapshotVersion.value = data.version || ''
@@ -333,7 +327,6 @@ export function useAgentTeamsEmbedAccess({ token, leaderStore, t, locale, onSnap
       const data = await response.json().catch(() => ({}))
       if (!isCurrent(requestGeneration)) return
       if (!response.ok) {
-        if (response.status === 401) notifyParentRenewRequired()
         throw new Error(data?.detail?.message || data?.message || t('leader.runtime.embedAccessDenied'))
       }
       if (data.terminal || data.version !== snapshotVersion.value) {

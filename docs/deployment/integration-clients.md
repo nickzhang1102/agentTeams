@@ -1,6 +1,6 @@
 # 集成客户端与会诊对账运维指南
 
-这份指南面向维护 AgentTeams 外部集成的管理员和部署人员。它描述客户端凭证、通用 launch/status/reconcile/embed renew 接口，以及本地 embed access 撤销操作。
+这份指南面向维护 AgentTeams 外部集成的管理员和部署人员。它描述客户端凭证、通用 launch/status/reconcile 接口，以及本地 embed access 撤销操作。
 
 ## 先记住三条边界
 
@@ -16,10 +16,9 @@
 POST /api/integrations/v1/{client_key}/consultation-launches
 GET  /api/integrations/v1/{client_key}/consultation-launches/{request_id}
 POST /api/integrations/v1/{client_key}/consultation-launches/{request_id}/reconcile
-POST /api/integrations/v1/{client_key}/embed-sessions/renew
 ```
 
-launch 请求使用 provider-neutral 字段：`user_ref`、`subject_ref`、`conversation_ref`、`title`、`message`、`locale` 和 `metadata`。status/reconcile 是只读查询，不创建会话、不调度 workflow；renew 只为已经定位到的 client-owned launch 换发访问令牌。
+launch 请求使用 provider-neutral 字段：`user_ref`、`subject_ref`、`conversation_ref`、`title`、`message`、`locale` 和 `metadata`。status/reconcile 是只读查询，不创建会话、不调度 workflow。嵌入令牌只在 launch 时签发，到期后需重新发起会诊。
 
 常见结果：
 

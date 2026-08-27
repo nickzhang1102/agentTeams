@@ -24,7 +24,7 @@ def get_client_ip(request):
 
 
 # 全局 limiter 实例，app.py 中注入到 app.state.limiter
-limiter = Limiter(key_func=get_client_ip, default_limits=["200 per minute"])
+limiter = Limiter(key_func=get_client_ip, default_limits=["100 per minute"])
 
 
 # 限流配置常量
