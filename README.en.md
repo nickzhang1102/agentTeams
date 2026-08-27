@@ -147,7 +147,7 @@ The script builds images → starts services → runs database migrations (idemp
 ### 3️⃣ Access
 
 - Frontend: <http://localhost:8380>
-- Admin account `admin`, initial password is **randomly generated**: check `docker compose logs backend` or the host file `backend/data/.admin_initial_password` (`admin/admin123` only applies to local development with `APP_ENV=development`). **Change the password immediately after first login.**
+- Admin account `admin`. **Recommended**: set `ADMIN_INITIAL_PASSWORD` in `backend/.env` before starting (at least 8 characters, letters and digits required) — on first creation it becomes the admin initial password directly, no log digging needed. If unset, a random password is generated: check the most recent "admin created" line in `docker compose logs backend` (logs persist across container recreations — stale lines show dead passwords), or the host file `backend/data/.admin_initial_password` (`admin/admin123` only applies to local development with `APP_ENV=development`). Forgot the password or locked out: `docker compose exec -e ADMIN_INITIAL_PASSWORD='NewPass' backend python reset_admin.py`.
 
 ---
 

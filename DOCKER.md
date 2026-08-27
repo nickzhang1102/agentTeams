@@ -71,8 +71,12 @@ docker compose run --rm --no-deps -v ./backend:/host-backend backend \
 - **后端 API**: http://localhost:5000/api
 - **管理员账号**:
   - 用户名: `admin`
-  - 初始密码随机生成，见 `docker compose logs backend` 输出或宿主机 `backend/data/.admin_initial_password` 文件（仅本地开发 APP_ENV=development 时为 admin/admin123）
-  - 请首次登录后立即修改密码
+  - **推荐**: 启动前在 `backend/.env` 中设置 `ADMIN_INITIAL_PASSWORD`（至少 8 位、含字母和数字），首次创建 admin 时将直接用它作为初始密码——不再随机生成、不打印到日志。该变量仅在首次创建时生效，不会覆盖已存在的账号
+  - 未设置时回退为随机生成：见 `docker compose logs backend` 或宿主机 `backend/data/.admin_initial_password` 文件。**注意**：logs 会保留历史容器的输出，请认准最近一次"管理员已创建"的记录；用旧记录里的密码登录失败是最常见的踩坑点（仅本地开发 APP_ENV=development 时为 admin/admin123）
+  - 忘记密码或账户被锁（连续输错 5 次会锁 15 分钟，报错与"密码错误"相同）：
+    ```bash
+    docker compose exec -e ADMIN_INITIAL_PASSWORD='新密码' backend python reset_admin.py
+    ```
 
 ### 🛠️ 常用命令
 

@@ -336,19 +336,6 @@
       </div>
     </section>
 
-    <!-- 主页底部状态栏：GitHub 链接 + 版本号 -->
-    <footer class="home-footer">
-      <div class="container home-footer-content">
-        <a
-          class="footer-repo-link"
-          href="https://github.com/nickzhang1102/agentTeams"
-          target="_blank"
-          rel="noopener noreferrer"
-        >{{ t('home.footer.repo') }}</a>
-        <span v-if="appVersion" class="footer-version">{{ t('home.footer.version') }} {{ appVersion }}</span>
-      </div>
-    </footer>
-
     <!-- Agent Teams 项目首次引导 -->
     <PartnerProjectGuide v-model:show="showPartnerGuide" />
 
@@ -459,7 +446,6 @@ const selectedTemplate = ref(null)
 const showTemplatePicker = ref(false)
 const showConfigOnboarding = ref(false)
 const showPartnerGuide = ref(false)
-const appVersion = ref('')
 const showBeginnerHelp = ref(false)
 const helpExpanded = ref(false)
 const beginnerHelpItems = [
@@ -921,14 +907,7 @@ onMounted(async () => {
     }
   }
 
-  // 底部状态栏版本号（公开健康端点，失败静默）
-  try {
-    const healthRes = await api.get('/api/health')
-    appVersion.value = healthRes.data?.version || ''
-  } catch {
-    // 静默失败，状态栏不展示版本
-  }
-})
+  })
 
 // 模型切换（保存到 localStorage）
 function selectModel(modelId) {
@@ -1808,36 +1787,5 @@ function onModelChange(val) {
   }
 }
 
-/* ===== 主页底部状态栏 ===== */
-.home-footer {
-  margin-top: var(--spacing-xl);
-  padding: var(--spacing-md) 0 var(--spacing-lg);
-  border-top: 1px solid var(--color-border);
-}
 
-.home-footer-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
-}
-
-.footer-repo-link {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary, #64748b);
-  text-decoration: none;
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: var(--color-primary);
-    text-decoration: underline;
-  }
-}
-
-.footer-version {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted, #94a3b8);
-  white-space: nowrap;
-}
 </style>

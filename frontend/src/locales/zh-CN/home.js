@@ -136,10 +136,6 @@ export default {
       prev: '上一步',
       done: '开始使用',
     },
-    footer: {
-      repo: 'github.com/nickzhang1102/agentTeams',
-      version: '版本',
-    },
     cases: {
       featured: '精选案例',
       mine: '我的案例',

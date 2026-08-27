@@ -328,7 +328,7 @@ cp backend/.env.example backend/.env
         <div class="deploy-card" data-reveal>
           <span class="deploy-num">03</span>
           <h3>初始化并上线</h3>
-          <p class="deploy-note">默认账号 admin / admin123——首次登录后请立即修改密码；随后在后台「LLM 模型」添加一个 OpenAI 兼容服务即可开始使用。医疗场景请先阅读免责声明。</p>
+          <p class="deploy-note">在 backend/.env 设置 ADMIN_INITIAL_PASSWORD 即为 admin 初始密码；未设置则见 docker compose logs 随机生成（仅本地开发为 admin/admin123）。随后在后台「LLM 模型」添加一个 OpenAI 兼容服务即可开始使用。医疗场景请先阅读免责声明。</p>
           <a class="arrow-link" href="https://github.com/nickzhang1102/agentTeams/blob/master/DISCLAIMER.md" target="_blank" rel="noopener noreferrer">阅读医疗免责声明
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>

@@ -173,7 +173,7 @@ docker compose logs -f
 
 - **前端**: http://localhost:8380
 - **后端 API**: http://localhost:5000/api
-- **管理员账号**: 用户名 `admin`，初始密码随机生成，见 `docker compose logs backend` 输出或宿主机 `backend/data/.admin_initial_password` 文件（仅本地开发 APP_ENV=development 时为 admin/admin123），首次登录后请立即修改
+- **管理员账号**: 用户名 `admin`。推荐：启动前在 `backend/.env` 设置 `ADMIN_INITIAL_PASSWORD`（至少 8 位、含字母和数字），首次创建 admin 时直接作为初始密码，无需翻查日志；未设置时回退随机生成——见 `docker compose logs backend`（认准最近一次"管理员已创建"的记录）或宿主机 `backend/data/.admin_initial_password`（仅本地开发 APP_ENV=development 时为 admin/admin123）。忘密/被锁重置：`docker compose exec -e ADMIN_INITIAL_PASSWORD='新密码' backend python reset_admin.py`
 
 ---
 
@@ -185,6 +185,7 @@ docker compose logs -f
 |--------|------|------|--------|
 | `SECRET_KEY` | ✅ | 应用根密钥（用于加密数据库凭证） | 随机字符串 |
 | `JWT_SECRET_KEY` | ✅ | JWT 密钥 | 随机字符串 |
+| `ADMIN_INITIAL_PASSWORD` | ❌（推荐） | 首次创建 admin 的初始密码；未设置则随机生成，忘密/被锁用 `reset_admin.py` 重置 | `MyPass2026` |
 | `DATABASE_URL` | ✅ | 数据库连接 | `postgresql+psycopg://...` |
 | `FILE_STORAGE_PATH` | ❌ | 文件存储路径 | `data/files` |
 | `WORKSPACE_DIR` | ❌ | 工作目录 | `data/workspace` |

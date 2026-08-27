@@ -155,11 +155,11 @@ agent-teams-frontend     Up (healthy)   0.0.0.0:8380->80/tcp
 http://<NAS-IP>:8380
 ```
 
-**默认账号**（首次访问）：
+**管理员账号**（首次访问）：
 - 用户名：`admin`
-- 密码：`admin123`
+- 密码：推荐部署前在 `backend/.env` 设置 `ADMIN_INITIAL_PASSWORD`，首次创建时直接作为初始密码；未设置则随机生成——见 `docker compose logs backend` 最近一次"管理员已创建"的输出，或 `backend/data/.admin_initial_password` 文件（仅 APP_ENV=development 时为 `admin/admin123`）
 
-⚠️ **登录后立即修改密码！**
+⚠️ **忘记密码或被锁**：`docker compose exec -e ADMIN_INITIAL_PASSWORD='新密码' backend python reset_admin.py`
 
 ---
 

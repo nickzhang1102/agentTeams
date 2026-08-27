@@ -147,7 +147,7 @@ cp backend/.env.example backend/.env
 ### 3️⃣ 访问
 
 - 前端：<http://localhost:8380>
-- 管理员账号 `admin`，初始密码**随机生成**：见 `docker compose logs backend` 输出，或宿主机 `backend/data/.admin_initial_password` 文件（仅本地开发 `APP_ENV=development` 时为 admin/admin123）。**首次登录后请立即修改密码。**
+- 管理员账号 `admin`。**推荐**：启动前在 `backend/.env` 中设置 `ADMIN_INITIAL_PASSWORD`（至少 8 位、含字母和数字），首次创建 admin 时将直接用它作为初始密码，无需翻查日志；未设置时回退为随机生成——见 `docker compose logs backend`（注意日志会保留历史容器输出，请认准最近一次"管理员已创建"的记录）或宿主机 `backend/data/.admin_initial_password` 文件（仅本地开发 `APP_ENV=development` 时为 admin/admin123）。忘记密码或账户被锁：`docker compose exec -e ADMIN_INITIAL_PASSWORD='新密码' backend python reset_admin.py`。
 
 ---
 

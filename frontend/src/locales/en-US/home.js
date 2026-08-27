@@ -136,10 +136,6 @@ export default {
       prev: 'Previous',
       done: 'Get started',
     },
-    footer: {
-      repo: 'github.com/nickzhang1102/agentTeams',
-      version: 'Version',
-    },
     cases: {
       featured: 'Featured cases',
       mine: 'My cases',
