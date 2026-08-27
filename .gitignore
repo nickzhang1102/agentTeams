@@ -47,6 +47,7 @@
 # 本地 Claude 配置与技能（不随开源公开；Agent 定义已移至顶层 agents/）
 /.claude/
 /.clinerules/
+/CLAUDE.md
 
 # backend 子目录的本地 Claude 配置与重复技能（含 bypassPermissions 危险默认，不随开源发布）
 /backend/.claude/
@@ -58,3 +59,22 @@
 /OpenHarness/docs/autopilot/
 # jspace 归档目录
 /.jspace.archive-*/
+
+# backend/frontend 本地子模块说明与内部修复记录（历史记录，工作区保留不入库）
+/backend/CLAUDE.md
+/backend/FIX_REPORT.md
+/backend/GET_ASSESSMENT_DETAILS_FIX.md
+/backend/MIGRATION_FIX_REPORT.md
+/frontend/CLAUDE.md
+/frontend/README.md
+
+# 迁移报告与废弃说明（历史记录）
+/backend/migrations/scripts/MIGRATION_REPORT.md
+/backend/migrations/scripts/.deprecated
+
+# 覆盖率生成物（临时产物）
+/backend/.coverage
+
+# 归档文件（历史组件/接口，本地保留不入库）
+/backend/api/__archive__/
+/frontend/src/components/__archive__/
