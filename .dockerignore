@@ -75,10 +75,11 @@ docker-compose.override.yml
 
 # 其他
 .claude/
-!.claude/agents/
-# 上一行恢复 agents 目录本身后，其中的 md 仍被前部 *.md 规则排除，
-# 需显式取回，否则纯镜像部署（无 compose volume 挂载）会丢失全部 Agent 配置
-!.claude/agents/**/*.md
+.clinerules/
+# agents 目录中的 md 仍被前部 *.md 规则排除，需显式取回，
+# 否则纯镜像部署（无 compose volume 挂载）会丢失全部 Agent 配置
+!agents/
+!agents/**/*.md
 design-system/
 
 # 但不要忽略 OpenHarness 源码（需要复制到容器）

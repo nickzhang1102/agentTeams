@@ -2,7 +2,7 @@
 import os
 import re
 
-agents_dir = '.claude/agents'
+agents_dir = 'agents'
 
 def get_default_priority(agent_id, name):
     """根据 Agent 类型推断默认 priority"""

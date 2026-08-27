@@ -166,7 +166,7 @@ CLAUDE_API_KEY=your-claude-api-key
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/claude_chat
 FILE_STORAGE_PATH=data/files
 WORKSPACE_DIR=data/workspace
-AGENTS_DIR=path/to/.claude/agents
+AGENTS_DIR=path/to/agents
 ```
 
 ### 前端 (.env)

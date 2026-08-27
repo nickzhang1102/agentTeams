@@ -37,7 +37,7 @@ class HarnessCoordinator:
 
         Args:
             agents_dir: Directory containing agent configuration files.
-                       Defaults to ../.claude/agents relative to backend dir.
+                       Defaults to ../agents relative to backend dir.
             config: 应用配置 dict. If None, falls back to Config class.
         """
         self._config = config  # 保存注入的配置

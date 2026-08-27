@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class AgentFileManager:
     """Agent配置文件管理器
 
-    管理存储在 .claude/agents/ 目录下的Agent配置文件。
+    管理存储在 agents/ 目录下的Agent配置文件。
     所有操作都经过安全验证，防止路径遍历攻击。
     """
 
@@ -38,7 +38,7 @@ class AgentFileManager:
             self.agents_dir = Path(
                 Config.AGENTS_DIR or
                 os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                            '.claude', 'agents')
+                            'agents')
             )
 
         # 确保目录存在（Docker 中 agents 目录可能是只读挂载，忽略权限错误）

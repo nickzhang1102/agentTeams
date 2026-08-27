@@ -21,7 +21,7 @@ def get_file_manager() -> AgentFileManager:
     """获取AgentFileManager实例（延迟初始化）"""
     agents_dir = app_config.get(
         'AGENTS_DIR',
-        os.path.join(os.path.dirname(__file__), '..', '..', '.claude/agents')
+        os.path.join(os.path.dirname(__file__), '..', '..', 'agents')
     )
     return AgentFileManager(agents_dir)
 

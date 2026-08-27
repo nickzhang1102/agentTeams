@@ -345,7 +345,7 @@ rm OpenHarness.tar.gz
      backend:
        volumes:
          - /volume1/docker/agentTeams/backend/data:/app/data
-         - /volume1/docker/agentTeams/.claude/agents:/app/agents:ro
+         - /volume1/docker/agentTeams/agents:/app/agents:ro
      
      postgres:
        volumes:
@@ -669,7 +669,7 @@ cat backup_20260614_120000.sql | docker compose exec -T postgres psql -U postgre
 tar -czf files_backup_$(date +%Y%m%d).tar.gz backend/data/files
 
 # 备份 Agent 配置
-tar -czf agents_backup_$(date +%Y%m%d).tar.gz .claude/agents/
+tar -czf agents_backup_$(date +%Y%m%d).tar.gz agents/
 ```
 
 ### 8.5 更新部署

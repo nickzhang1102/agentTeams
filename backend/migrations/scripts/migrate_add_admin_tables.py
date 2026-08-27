@@ -9,7 +9,7 @@
 
 初始化数据：
 - 默认系统配置
-- 同步现有 .claude/agents/*.md 文件到数据库
+- 同步现有 agents/*.md 文件到数据库
 """
 
 import os
@@ -86,10 +86,10 @@ def parse_agent_file(file_path):
 def sync_existing_agents():
     """同步现有的Agent文件到数据库
 
-    扫描 .claude/agents/ 目录下的所有 .md 文件，
+    扫描 agents/ 目录下的所有 .md 文件，
     解析配置并插入到 agent_configs 表。
     """
-    agents_dir = Path(__file__).parent.parent / '.claude' / 'agents'
+    agents_dir = Path(__file__).parent.parent.parent.parent / 'agents'
 
     if not agents_dir.exists():
         print(f"[WARN] Agent目录不存在: {agents_dir}")

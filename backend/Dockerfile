@@ -35,10 +35,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend .
 
 # 复制 Agent 配置文件（seed_admin_data.py 和 AgentContentReader 需要）
-COPY .claude/agents /app/.claude/agents
+COPY agents /app/agents
 
 # Agent 配置目录（覆盖 config.py 中基于 basedir 的默认路径）
-ENV AGENTS_DIR=/app/.claude/agents
+ENV AGENTS_DIR=/app/agents
 
 # 启动脚本（真实文件，勿用 RUN echo 内联生成——\n 转义在 dash/bash echo 中不生效）
 COPY backend/start.sh /app/start.sh

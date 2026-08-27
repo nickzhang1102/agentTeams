@@ -151,7 +151,7 @@ cat backup.sql | docker compose exec -T postgres psql -U postgres agent_teams
 
 - `postgres_data`: PostgreSQL 数据持久化
 - `./backend/data`: 文件存储
-- `./.claude/agents`: Agent 配置文件
+- `./agents`: Agent 配置文件
 
 ### 🔒 安全建议
 

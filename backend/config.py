@@ -137,7 +137,7 @@ class Config:
 
     # Agents目录
     AGENTS_DIR = os.environ.get('AGENTS_DIR') or \
-        os.path.join(basedir, '..', '.claude', 'agents')
+        os.path.join(basedir, '..', 'agents')
 
     # 工作目录（临时）
     WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR') or \

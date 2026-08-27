@@ -38,7 +38,7 @@ class TestHarnessPermissionManager:
         allowed_paths = [
             "data/files/test.txt",
             "data/workspace/project",
-            ".claude/agents/test.md",
+            "agents/test.md",
         ]
 
         for path in allowed_paths:

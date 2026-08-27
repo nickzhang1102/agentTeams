@@ -24,7 +24,7 @@ class HarnessPermissionManager:
     ALLOWED_PATH_PATTERNS = [
         "data/files",
         "data/workspace",
-        ".claude",
+        "agents",
     ]
 
     DENIED_PATH_PATTERNS = [

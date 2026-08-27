@@ -105,7 +105,7 @@ graph TD
     A["Agent Teams System"] --> B["backend/<br/>FastAPI 服务"]
     A --> C["frontend/<br/>Vue3 应用"]
     A --> D["docs/<br/>文档"]
-    A --> E[".claude/<br/>配置与技能"]
+    A --> E["agents/<br/>Agent 配置"]
     A --> F["scripts/<br/>运维脚本"]
 
     B --> B1["api/<br/>FastAPI 路由"]
@@ -146,7 +146,7 @@ graph TD
 | Backend | `backend/` | Python/FastAPI | RESTful API 服务 | `app.py` |
 | Frontend | `frontend/` | Vue3/Vite | Web 前端应用 | `src/main.js` |
 | Docs | `docs/` | Markdown | 项目文档与计划 | - |
-| Claude Config | `.claude/` | Markdown/YAML | Agent 配置与技能 | - |
+| Agents | `agents/` | Markdown | Agent 配置（开源公开） | - |
 | Scripts | `scripts/` | Python/Shell | 运维与部署脚本 | - |
 
 ---
@@ -217,7 +217,7 @@ npm run dev
 
 ## Agent 系统
 
-共 **107 个 Agent** 配置文件位于 `.claude/agents/`，覆盖以下领域：
+共 **107 个 Agent** 配置文件位于 `agents/`，覆盖以下领域：
 - **医疗专家**: 内科、外科、专科、医技科室（心内、呼内、消化、神内、普外、肝胆、骨科、儿科、眼科…）
 - **商业角色**: CEO(Bezos), CTO(Vogels), CFO(Campbell), 产品(Norman), UI(Duarte), 交互(Cooper)…
 - **金融期货**: CIO(Dalio), CRO(Taleb), 合规(Gensler), 量化(Simons), 分析师（宏观/黑色/有色/农产品等）…

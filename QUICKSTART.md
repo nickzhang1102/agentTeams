@@ -188,7 +188,7 @@ docker compose logs -f
 | `DATABASE_URL` | ✅ | 数据库连接 | `postgresql+psycopg://...` |
 | `FILE_STORAGE_PATH` | ❌ | 文件存储路径 | `data/files` |
 | `WORKSPACE_DIR` | ❌ | 工作目录 | `data/workspace` |
-| `AGENTS_DIR` | ❌ | Agent 目录 | `../.claude/agents` |
+| `AGENTS_DIR` | ❌ | Agent 目录 | `../agents` |
 
 > LLM 模型与 Exa/Tavily Key 不在 .env 中配置：登录后台 → 「LLM 模型」/「系统设置」，保存后加密入库。
 
