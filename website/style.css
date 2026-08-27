@@ -1036,6 +1036,54 @@ html.js [data-reveal].in-view { opacity: 1; transform: translateY(0); }
   footer { padding: 60px 20px 24px; }
 }
 
+/* ================= 移动端预览条（桌面视口） ================= */
+.mobile-strip { display: none; }
+@media (min-width: 861px) {
+  .mobile-strip {
+    display: block;
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: 30px 24px 0;
+  }
+  .mobile-strip-head .eyebrow { color: var(--blue); }
+  .mobile-strip-head h3 { margin: 12px 0 10px; font-size: clamp(24px, 2.6vw, 30px); font-weight: 700; }
+  .mobile-strip-head > p:last-child {
+    max-width: 640px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .mobile-strip-grid {
+    margin-top: 34px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 22px;
+  }
+  .mobile-strip-grid figure {
+    margin: 0;
+    border: 1px solid rgba(37, 99, 235, .14);
+    border-radius: 18px;
+    background: #fff;
+    padding: 12px 12px 14px;
+    box-shadow: 0 18px 40px rgba(37, 99, 235, .1);
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .mobile-strip-grid figure:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 26px 54px rgba(37, 99, 235, .16);
+  }
+  .mobile-strip-grid img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+  }
+  .mobile-strip-grid figcaption { padding-top: 12px; text-align: center; }
+  .mobile-strip-grid figcaption strong { display: block; font-size: 14.5px; }
+  .mobile-strip-grid figcaption span { color: var(--muted); font-size: 12.5px; }
+}
+
 /* ================= 减少动态效果 ================= */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
