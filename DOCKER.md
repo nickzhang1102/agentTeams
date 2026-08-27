@@ -149,7 +149,8 @@ cat backup.sql | docker compose exec -T postgres psql -U postgres agent_teams
 
 #### 数据卷
 
-- `postgres_data`: PostgreSQL 数据持久化
+- `postgres_data`: PostgreSQL 数据持久化（PostgreSQL 18+ 镜像挂载在 `/var/lib/postgresql`，
+  实际数据位于其下版本化子目录 `18/docker`）
 - `./backend/data`: 文件存储
 - `./agents`: Agent 配置文件
 

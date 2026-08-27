@@ -29,7 +29,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # PostgreSQL 18+ 镜像要求数据挂载在 /var/lib/postgresql（实际数据位于其下
+      # 版本化子目录 /var/lib/postgresql/18/docker，便于后续 pg_upgrade --link）。
+      # 继续挂旧的 /var/lib/postgresql/data 会被 entrypoint 拒绝启动。
+      # 参考 https://github.com/docker-library/postgres/pull/1259
+      - postgres_data:/var/lib/postgresql
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     ports:
       # 仅绑定回环地址：默认口令的数据库不应暴露到局域网/公网

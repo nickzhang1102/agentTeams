@@ -349,8 +349,13 @@ rm OpenHarness.tar.gz
      
      postgres:
        volumes:
-         - /volume1/docker/agentTeams/postgres_data:/var/lib/postgresql/data
+         - /volume1/docker/agentTeams/postgres_data:/var/lib/postgresql
    ```
+
+   > ⚠️ **PostgreSQL 18+ 挂载点变更**：官方 18+ 镜像把默认数据目录改为
+   > `/var/lib/postgresql/<主版本>/docker`（[PR #1259](https://github.com/docker-library/postgres/pull/1259)），
+   > 因此 compose 必须挂载 `/var/lib/postgresql`；继续挂旧的 `/var/lib/postgresql/data`
+   > 会被判定为「unused mount」而拒绝启动。修复步骤见 [nas-troubleshooting.md 问题 6](./nas-troubleshooting.md)。
 
 5. **构建并启动**：
    ```bash

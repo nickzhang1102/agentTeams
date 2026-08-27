@@ -22,6 +22,8 @@ export default {
       submitting: 'Logging in...',
       noAccount: "Don't have an account?",
       registerNow: 'Create one',
+      community: 'LINUX DO Community · Feedback & Support',
+      communityAria: 'Visit the LINUX DO community forum',
       success: 'Logged in',
       continueAnalysis: 'Continuing your analysis...',
       continueEditing: 'Welcome back. Continue editing.',

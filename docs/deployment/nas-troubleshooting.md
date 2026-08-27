@@ -208,17 +208,17 @@ scp dist.tar.gz admin@nas-ip:/vol1/docker/agentTeams/frontend/
 
 ## 问题 6：PostgreSQL 容器启动失败
 
-### 错误信息
+### 错误信息 A（数据目录非空）
 
 ```
 postgres  | initdb: error: directory "/var/lib/postgresql/data" exists but is not empty
 ```
 
-### 原因
+### 原因 A
 
 数据卷已存在旧数据，且格式不兼容。
 
-### 解决方案
+### 解决方案 A
 
 ```bash
 # 停止所有服务
@@ -233,6 +233,80 @@ sudo docker compose up -d postgres
 # 查看日志确认启动成功
 sudo docker compose logs postgres
 ```
+
+### 错误信息 B：PostgreSQL 18+ 数据目录布局变更（unused mount/volume）
+
+```
+agent-teams-postgres  | Error: in 18+, these Docker images are configured to store database data in a
+agent-teams-postgres  |        format which is compatible with "pg_ctlcluster" ...
+agent-teams-postgres  |        Counter to that, there appears to be PostgreSQL data in:
+agent-teams-postgres  |          /var/lib/postgresql/data (unused mount/volume)
+```
+
+### 原因 B
+
+PostgreSQL 18 起官方镜像将默认数据目录改为 `/var/lib/postgresql/<主版本>/docker`
+（[PR #1259](https://github.com/docker-library/postgres/pull/1259)），compose 应把数据卷挂载到
+`/var/lib/postgresql` 而不是旧的 `/var/lib/postgresql/data`。若数据库此前按旧布局初始化在卷根目录、
+compose 又仍挂在 `/var/lib/postgresql/data`，entrypoint 检测到这份数据「未被使用」就会拒绝启动，
+防止你以为在用旧库实际却在空库上运行。
+
+### 解决方案 B-1：无需保留数据（测试环境推荐）
+
+1. 将 `docker-compose.yml` 中 postgres 的挂载改为：
+   ```yaml
+   volumes:
+     - postgres_data:/var/lib/postgresql
+   ```
+2. 清掉旧布局的数据卷后重建：
+   ```bash
+   sudo docker compose down
+   # postgres_data 是本栈唯一的 named volume；卷名前缀随部署目录变化，可先 docker volume ls 核对
+   sudo docker volume rm agentteams_postgres_data
+   sudo docker compose up -d
+   ```
+   首次启动会重新执行 `docker/init-db.sql` 完成初始化。
+
+### 解决方案 B-2：需要保留数据
+
+先确认卷内数据的 PostgreSQL 主版本：
+
+```bash
+docker run --rm -v agentteams_postgres_data:/d:ro pgvector/pgvector:pg18 cat /d/PG_VERSION
+```
+
+**输出为 `18`**（本仓库一直使用 pg18 镜像，多数属于这种情况）——数据本身无需升级，
+只是目录布局是旧的，把它整体搬进新布局的版本化子目录即可：
+
+```bash
+sudo docker compose down
+
+# mv 原样保留文件属主与权限，不要 chown
+docker run --rm -v agentteams_postgres_data:/d alpine sh -c '
+  set -e
+  mkdir -p /d/18/docker
+  cd /d
+  for f in .* * ; do
+    case "$f" in .|..|18) continue ;; esac
+    mv "$f" /d/18/docker/
+  done
+'
+
+# 核对：卷根下只剩 18/，集群文件都在 18/docker/
+docker run --rm -v agentteams_postgres_data:/d alpine ls -la /d /d/18/docker
+```
+
+然后把 `docker-compose.yml` 挂载点改为 `/var/lib/postgresql` 并重启：
+
+```bash
+sudo docker compose up -d
+sudo docker compose logs postgres
+# 出现 “database system is ready to accept connections” 即迁移成功，原数据原样可用
+```
+
+**输出不是 `18`**（例如 17 或更早的主版本）：仅移动目录无法解决，需走 dump/restore——
+用对应旧版本镜像临时起容器 `pg_dumpall` 导出 SQL，再导入全新初始化的新布局库；
+跨大版本升级的完整讨论见 [docker-library/postgres#37](https://github.com/docker-library/postgres/issues/37)。
 
 ---
 

@@ -74,6 +74,21 @@
           <router-link to="/register" class="register-link">{{ t('auth.login.registerNow') }}</router-link>
         </div>
       </el-form>
+
+      <!-- 社区推广入口（对齐 OncoPath 登录页） -->
+      <div class="login-community">
+        <a
+          class="community-link"
+          href="https://linux.do"
+          target="_blank"
+          rel="noopener noreferrer"
+          :aria-label="t('auth.login.communityAria')"
+        >
+          <el-icon :size="16"><ChatDotRound /></el-icon>
+          <span>{{ t('auth.login.community') }}</span>
+          <el-icon :size="12"><ArrowRight /></el-icon>
+        </a>
+      </div>
     </el-card>
 
     <!-- Footer -->
@@ -95,6 +110,7 @@ import { useDraftStore } from '@/stores/draft'
 import { useConversationsStore } from '@/stores/conversations'
 import { useLeaderStore } from '@/stores/leader'
 import { ElMessage } from 'element-plus'
+import { ChatDotRound, ArrowRight } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -361,6 +377,34 @@ const handleLogin = async () => {
   background: rgba(219, 39, 119, 0.1);
 }
 
+/* Community Link（对齐 OncoPath 登录页） */
+.login-community {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-4);
+}
+
+.community-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--space-4);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.community-link:hover {
+  opacity: 0.8;
+}
+
+.community-link:active {
+  opacity: 0.7;
+}
+
 /* Login Footer */
 .login-footer {
   position: relative;
@@ -420,5 +464,9 @@ const handleLogin = async () => {
 
 [data-theme="dark"] .circle {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(96, 165, 250, 0.15) 100%);
+}
+
+[data-theme="dark"] .community-link {
+  background: rgba(96, 165, 250, 0.14);
 }
 </style>
