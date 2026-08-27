@@ -61,7 +61,7 @@ export default {
         plan: { title: '团队方案', description: '选择预设方案，让不同角色按场景分工。' },
         model: { title: '模型选择', description: '在输入框底部切换已启用的 LLM 模型。' },
         knowledge: { title: '知识库', description: '上传资料并加入知识库，后续分析可检索复用。' },
-        cases: { title: '案例记录', description: '在精选案例或我的案例中查看历史分析结果。' },
+        cases: { title: '案例记录', description: '在精选会话或我的会话中查看历史分析结果。' },
       },
     },
     projectSettings: {
@@ -143,12 +143,12 @@ export default {
       done: '开始使用',
     },
     cases: {
-      featured: '精选案例',
-      mine: '我的案例',
+      featured: '精选会话',
+      mine: '我的会话',
       loading: '加载中...',
       completed: '已完成',
-      noFeatured: '暂无精选案例',
-      featuredAdminHint: '管理员可在后台配置精选案例',
+      noFeatured: '暂无精选会话',
+      featuredAdminHint: '管理员可在后台配置精选会话',
       deleteTitle: '删除对话',
       noConversations: '还没有对话记录',
       startFirst: '开始你的第一次对话吧！',
@@ -165,6 +165,7 @@ export default {
     },
     statuses: {
       new: '新增', analyzing: '分析中', error: '有报错', completed: '已完成',
+      stopped: '已停止',
     },
     messages: {
       createConversationFailed: '创建对话失败',

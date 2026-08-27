@@ -1,19 +1,19 @@
 /**
  * 主页 Tab 切换测试
  *
- * 测试精选案例和我的案例 Tab 切换功能
+ * 测试精选会话和我的会话 Tab 切换功能
  */
 import { test, expect } from '../fixtures/base'
 
 test.describe('主页 Tab 切换', () => {
-  test('默认应显示精选案例 Tab', async ({ page }) => {
+  test('默认应显示精选会话 Tab', async ({ page }) => {
     await page.goto('/')
 
-    // 检查精选案例 Tab 是否激活
-    const featuredTab = page.locator('.tab:has-text("精选案例")')
+    // 检查精选会话 Tab 是否激活
+    const featuredTab = page.locator('.tab:has-text("精选会话")')
     await expect(featuredTab).toHaveClass(/active/)
 
-    // 检查精选案例内容显示
+    // 检查精选会话内容显示
     const casesGrid = page.locator('.cases-grid')
     await expect(casesGrid).toBeVisible()
 
@@ -23,26 +23,26 @@ test.describe('主页 Tab 切换', () => {
     expect(count).toBeGreaterThan(0)
   })
 
-  test('点击我的案例 Tab 应切换到我的案例', async ({ page }) => {
+  test('点击我的会话 Tab 应切换到我的会话', async ({ page }) => {
     await page.goto('/')
 
-    // 点击我的案例 Tab
-    await page.click('.tab:has-text("我的案例")')
+    // 点击我的会话 Tab
+    await page.click('.tab:has-text("我的会话")')
 
-    // 检查我的案例 Tab 是否激活
-    const mineTab = page.locator('.tab:has-text("我的案例")')
+    // 检查我的会话 Tab 是否激活
+    const mineTab = page.locator('.tab:has-text("我的会话")')
     await expect(mineTab).toHaveClass(/active/)
 
-    // 精选案例 Tab 不应激活
-    const featuredTab = page.locator('.tab:has-text("精选案例")')
+    // 精选会话 Tab 不应激活
+    const featuredTab = page.locator('.tab:has-text("精选会话")')
     await expect(featuredTab).not.toHaveClass(/active/)
   })
 
-  test('未登录时我的案例应显示空状态', async ({ page }) => {
+  test('未登录时我的会话应显示空状态', async ({ page }) => {
     await page.goto('/')
 
-    // 点击我的案例 Tab
-    await page.click('.tab:has-text("我的案例")')
+    // 点击我的会话 Tab
+    await page.click('.tab:has-text("我的会话")')
 
     // 等待内容加载
     await page.waitForTimeout(1000)
@@ -72,11 +72,11 @@ test.describe('主页 Tab 切换', () => {
 test.describe('主页 Tab 切换（已认证）', () => {
   test.use({ storageState: '.auth/user.json' })
 
-  test('已登录我的案例应显示对话列表或空状态', async ({ page }) => {
+  test('已登录我的会话应显示对话列表或空状态', async ({ page }) => {
     await page.goto('/')
 
-    // 点击我的案例 Tab
-    await page.click('.tab:has-text("我的案例")')
+    // 点击我的会话 Tab
+    await page.click('.tab:has-text("我的会话")')
 
     // 等待 API 响应
     await page.waitForTimeout(2000)

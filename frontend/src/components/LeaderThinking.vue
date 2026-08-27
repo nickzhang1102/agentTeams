@@ -1,20 +1,5 @@
 <template>
   <div class="leader-thinking">
-    <!-- 运行中显示"停止生成"按钮，让用户对结果不满意时可主动及时退出（避免继续消耗 token） -->
-    <div class="stop-bar" v-if="allowStop && leaderStore.isActive">
-      <el-button
-        size="small"
-        type="warning"
-        plain
-        :icon="CircleClose"
-        :loading="leaderStore.stopRequested"
-        :disabled="leaderStore.stopRequested"
-        @click="handleStop"
-      >
-        {{ t('leader.actions.stopGenerating') }}
-      </el-button>
-    </div>
-
     <div class="phase-indicator" v-if="phases && phases.length > 0">
       <ol class="phase-track">
         <li
@@ -72,11 +57,10 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
 import { useLeaderStore } from '@/stores/leader'
 import { useContentTranslationStore } from '@/stores/contentTranslation'
 import { formatMessageContent } from '@/utils/messageContentFormatter'
-import { Loading, CircleClose } from '@element-plus/icons-vue'
+import { Loading } from '@element-plus/icons-vue'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import ContentTranslationStatus from './ContentTranslationStatus.vue'
 
@@ -212,18 +196,6 @@ const reversedMessages = computed(() => {
   return [...allMessages.value].reverse()
 })
 
-// 停止生成
-async function handleStop() {
-  try {
-    await leaderStore.stopExecution()
-    ElMessage.success(t('leader.actions.stopSent'))
-  } catch (error) {
-    ElMessage.error(
-      error?.response?.data?.detail?.error || t('leader.actions.stopFailed')
-    )
-  }
-}
-
 </script>
 
 <style scoped>
@@ -232,15 +204,6 @@ async function handleStop() {
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-.stop-bar {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: flex-end;
-  padding: 6px 12px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color);
 }
 
 .phase-indicator {

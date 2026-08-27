@@ -457,3 +457,95 @@ describe('ConversationDisplay embed access mode', () => {
     wrapper.unmount()
   })
 })
+
+describe('ConversationDisplay standard access with pending session data', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+    consumeSSEStreamMock.mockReset()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  function stubStandardLoadResponses() {
+    return vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          conversation: { id: 11, title: '待分析需求' },
+          messages: [{ id: 1, type: 'user', role: 'user', content: '帮我分析这个需求' }],
+          files: []
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true, sessions: [], messages: [] })
+      })
+      .mockImplementation(() => Promise.resolve({ ok: true, body: {} })))
+  }
+
+  function mountWithPendingSession() {
+    let streamHandler = null
+    consumeSSEStreamMock.mockImplementation((_response, onMessage) => {
+      streamHandler = onMessage
+      // 永不结束的 SSE 流：模拟评估/组队/执行阶段长时间运行
+      return new Promise(() => {})
+    })
+
+    const store = useLeaderStore()
+    store.pendingSessionData = {
+      message: '帮我分析这个需求',
+      fileIds: [],
+      templateId: null,
+      locale: 'zh-CN'
+    }
+
+    const wrapper = mountComponent({ token: 'std-token', accessMode: 'standard' })
+    return { wrapper, store, getStreamHandler: () => streamHandler }
+  }
+
+  it('starts the leader session in the background so the detail page renders immediately', async () => {
+    stubStandardLoadResponses()
+    const { wrapper } = mountWithPendingSession()
+    await flushPromises()
+
+    // 会话启动请求已发出
+    expect(fetch.mock.calls.map(call => call[0])).toEqual([
+      '/api/conversations/share/std-token',
+      '/api/leader/session/share/std-token',
+      '/api/leader/start'
+    ])
+
+    // 加载门已随数据加载解除：详情页立即可见，
+    // 消息区显示“正在启动分析”指示，而不是整页卡在 loading 动画
+    expect(wrapper.find('.loading-state').exists()).toBe(false)
+    expect(wrapper.find('.starting-indicator').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('processes live leader_question events arriving on the background stream', async () => {
+    stubStandardLoadResponses()
+    const { wrapper, store, getStreamHandler } = mountWithPendingSession()
+    await flushPromises()
+
+    getStreamHandler()({
+      type: 'leader_question',
+      session_id: 20,
+      questions: [{ question: '当前目标是什么？', options: ['A 方案', 'B 方案'] }],
+      content_locale: 'zh-CN'
+    })
+    await flushPromises()
+
+    // 追问事件实时进入 store —— LeaderQuestionDialog 的 watcher 据此自动弹窗
+    expect(store.leaderState).toBe('questioning')
+    expect(store.currentQuestions).toEqual([
+      { question: '当前目标是什么？', options: ['A 方案', 'B 方案'], content_locale: 'zh-CN' }
+    ])
+
+    wrapper.unmount()
+  })
+})

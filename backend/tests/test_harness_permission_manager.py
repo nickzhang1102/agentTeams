@@ -118,6 +118,7 @@ class TestHarnessPermissionManager:
         assert result["allowed"] is True
         assert result["executed"] is True
 
+    @pytest.mark.skipif(os.name == 'nt', reason="Hook execution requires bash on Windows (Git Bash or WSL)")
     def test_execute_hook_blocked(self, permission_manager):
         """测试执行钩子（阻止）"""
         hook_name = "PreLeaderStart"

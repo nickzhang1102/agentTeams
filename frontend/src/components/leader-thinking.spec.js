@@ -116,12 +116,12 @@ describe('LeaderThinking embed history updates', () => {
     expect(wrapper.text()).toContain('Leader 已完成需求评估')
   })
 
-  it('hides the owner stop action in embed mode', async () => {
+  it('does not render its own stop action (handled by ConversationDisplay header)', async () => {
     const store = useLeaderStore()
     store.leaderState = 'monitoring'
 
     const wrapper = shallowMount(LeaderThinking, {
-      props: { sessionId: 77, allowStop: false },
+      props: { sessionId: 77, allowStop: true },
       global: {
         stubs: {
           MarkdownRenderer: true,

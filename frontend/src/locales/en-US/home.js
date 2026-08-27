@@ -61,7 +61,7 @@ export default {
         plan: { title: 'Team plans', description: 'Pick a preset so roles are assigned for your scenario.' },
         model: { title: 'Model picker', description: 'Switch between enabled LLMs from the input toolbar.' },
         knowledge: { title: 'Knowledge base', description: 'Upload references for later retrieval during analysis.' },
-        cases: { title: 'Case history', description: 'Browse featured examples and your previous analyses.' },
+        cases: { title: 'Case history', description: 'Browse featured sessions and your previous analyses.' },
       },
     },
     projectSettings: {
@@ -143,12 +143,12 @@ export default {
       done: 'Get started',
     },
     cases: {
-      featured: 'Featured cases',
-      mine: 'My cases',
+      featured: 'Featured sessions',
+      mine: 'My sessions',
       loading: 'Loading...',
       completed: 'Completed',
-      noFeatured: 'No featured cases',
-      featuredAdminHint: 'Administrators can feature cases from the admin area',
+      noFeatured: 'No featured sessions',
+      featuredAdminHint: 'Administrators can feature sessions from the admin area',
       deleteTitle: 'Delete conversation',
       noConversations: 'No conversations yet',
       startFirst: 'Start your first conversation',
@@ -165,6 +165,7 @@ export default {
     },
     statuses: {
       new: 'New', analyzing: 'Analyzing', error: 'Error', completed: 'Completed',
+      stopped: 'Stopped',
     },
     messages: {
       createConversationFailed: 'Could not create the conversation',

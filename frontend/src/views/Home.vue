@@ -252,7 +252,7 @@
           </button>
         </div>
 
-        <!-- 精选案例 -->
+        <!-- 精选会话 -->
         <div v-if="activeTab === 'featured'" class="cases-grid">
           <!-- Loading 状态 -->
           <div v-if="featuredLoading" class="loading-state">
@@ -287,7 +287,7 @@
           </template>
         </div>
 
-        <!-- 我的案例 -->
+        <!-- 我的会话 -->
         <div v-else class="cases-grid">
           <div
             v-for="conversation in recentConversations"
@@ -501,18 +501,18 @@ const ALLOWED_FILE_TYPES = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_FILES = 5
 
-// 精选案例数据（从 API 获取）
+// 精选会话数据（从 API 获取）
 const featuredCases = ref([])
 const featuredLoading = ref(false)
 
-// 获取精选案例
+// 获取精选会话
 const fetchFeaturedCases = async () => {
   featuredLoading.value = true
   try {
     const response = await api.get('/api/conversations/featured')
     featuredCases.value = response.data
   } catch (error) {
-    console.error('获取精选案例失败:', error)
+    console.error('获取精选会话失败:', error)
   } finally {
     featuredLoading.value = false
   }
@@ -729,7 +729,7 @@ const onKnowledgeToggle = () => {
   }
 }
 
-// 精选案例点击 - 跳转到会话详情页
+// 精选会话点击 - 跳转到会话详情页
 const handleFeaturedCaseClick = (caseItem) => {
   if (caseItem.share_token) {
     window.open(`/conversation/${caseItem.share_token}`, '_blank')
@@ -820,6 +820,7 @@ const statusMap = {
   analyzing: 'status-analyzing',
   error: 'status-error',
   completed: 'status-completed',
+  stopped: 'status-stopped',
 }
 
 // 获取分类标签
@@ -866,7 +867,7 @@ onMounted(async () => {
     draftStore.clearDraft()
   }
 
-  // 获取精选案例
+  // 获取精选会话
   await fetchFeaturedCases()
 
   if (route.path === '/') {
@@ -1650,6 +1651,11 @@ function onModelChange(val) {
 .status-completed {
   background: #D1FAE5;
   color: #047857;
+}
+
+.status-stopped {
+  background: #E5E7EB;
+  color: #374151;
 }
 
 .case-title {

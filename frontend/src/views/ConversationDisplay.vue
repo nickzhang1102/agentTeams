@@ -98,6 +98,19 @@
               <span class="status-text">{{ statusText }}</span>
             </div>
             <span class="time-display">{{ formattedTime }}</span>
+            <!-- 停止生成按钮：Leader 运行中显示，置于问题栏最右侧 -->
+            <button
+              v-if="!isEmbedMode && leaderStore.isActive"
+              class="stop-btn"
+              @click="handleStop"
+              :disabled="leaderStore.stopRequested"
+              :title="t('leader.actions.stopGenerating')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+              <span>{{ leaderStore.stopRequested ? t('leader.actions.stopSent') : t('leader.actions.stopGenerating') }}</span>
+            </button>
           </div>
         </div>
         <!-- 附件列表 -->
@@ -730,6 +743,18 @@ const handleRegenerate = async () => {
   }
 }
 
+// 停止生成
+const handleStop = async () => {
+  try {
+    await leaderStore.stopExecution()
+    ElMessage.success(t('leader.actions.stopSent'))
+  } catch (error) {
+    ElMessage.error(
+      error?.response?.data?.detail?.error || t('leader.actions.stopFailed')
+    )
+  }
+}
+
 // 文件预览方法
 const handlePreviewFile = async (file) => {
   previewFile.value = file
@@ -1012,7 +1037,10 @@ async function loadAnalysisAccess(token, accessMode = props.accessMode) {
     if (componentDisposed || requestGeneration !== analysisGeneration) return
 
     if (leaderStore.pendingSessionData) {
-      await startLeaderSessionIfNeeded()
+      // 不 await：startLeaderSessionIfNeeded 会消费整段 SSE 流，等待它会让
+      // standardLoading 一直为 true，分析详情页被卡在加载动画后面。
+      // 后台启动即可：SSE 事件由 leader store 实时驱动渲染，旧流由 resetState 中断。
+      void startLeaderSessionIfNeeded()
     }
   } catch (loadError) {
     if (loadError.name !== 'AbortError') {
@@ -1532,6 +1560,43 @@ watch(locale, () => {
       border-color: #409eff;
       color: #409eff;
     }
+  }
+}
+
+/* 停止生成按钮 */
+.stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #E11D48;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    border-color: #E11D48;
+    color: #E11D48;
+    background: rgba(225, 29, 72, 0.06);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  svg {
+    flex-shrink: 0;
+    animation: none;
   }
 }
 
@@ -2125,6 +2190,10 @@ watch(locale, () => {
     width: 100%;
     justify-content: flex-start;
     padding-left: 46px; // 对齐返回按钮后的内容
+
+    .stop-btn {
+      margin-left: auto;
+    }
   }
 
   .header-attachments {
