@@ -13,15 +13,6 @@
         <div class="header-right">
           <div class="header-actions">
             <LanguageSelector />
-            <button
-              v-if="authStore.isAuthenticated"
-              class="project-settings-nav"
-              type="button"
-              @click="router.push('/project/settings')"
-            >
-              <span aria-hidden="true">⚙</span>
-              {{ t('home.projectSettings.menu') }}
-            </button>
             <!-- 用户菜单 -->
             <UserMenuDropdown :auth-store="authStore" />
           </div>
@@ -939,7 +930,8 @@ function onModelChange(val) {
 .onboarding-item div { display: flex; flex-direction: column; gap: 5px; }
 .onboarding-item span { font-size: 12px; line-height: 1.5; color: var(--color-text-secondary); }
 .onboarding-note { margin-top: 16px !important; font-size: 12px; }
-.beginner-help { position: fixed; right: 24px; bottom: calc(var(--footer-height) + 16px); z-index: 1200; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+/* 抬升到全局主题切换圆钮（bottom: footer+12px，40px 高，顶边在 footer+52px）上方，避免两圆重叠 */
+.beginner-help { position: fixed; right: 24px; bottom: calc(var(--footer-height) + 68px); z-index: 1200; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .beginner-help-fab { width: 48px; height: 48px; border: 0; border-radius: 50%; color: #fff; background: var(--color-primary); box-shadow: 0 8px 24px rgba(37, 99, 235, .28); cursor: pointer; font-size: 22px; font-weight: 700; transition: transform .2s, box-shadow .2s; }
 .beginner-help-fab:hover, .beginner-help-fab:focus-visible { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(37, 99, 235, .36); outline: none; }
 .beginner-help-panel { width: min(350px, calc(100vw - 32px)); padding: 18px; border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-card); box-shadow: 0 16px 40px rgba(15, 23, 42, .18); }
@@ -955,7 +947,7 @@ function onModelChange(val) {
 .help-settings-link { padding: 0; border: 0; color: var(--color-primary); background: transparent; cursor: pointer; font-size: 13px; }
 .help-popover-enter-active, .help-popover-leave-active { transition: opacity .18s, transform .18s; transform-origin: bottom right; }
 .help-popover-enter-from, .help-popover-leave-to { opacity: 0; transform: translateY(8px) scale(.98); }
-@media (max-width: 560px) { .onboarding-grid { grid-template-columns: 1fr; } .beginner-help { right: 16px; bottom: 16px; } }
+@media (max-width: 560px) { .onboarding-grid { grid-template-columns: 1fr; } .beginner-help { right: 16px; bottom: calc(var(--footer-height) + 64px); } }
 
 /* 头部导航 */
 .header {
@@ -1012,9 +1004,6 @@ function onModelChange(val) {
   align-items: center;
   gap: var(--spacing-md);
 }
-
-.project-settings-nav { display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-secondary); background: transparent; cursor: pointer; font-size: 13px; transition: color .2s, border-color .2s, background .2s; }
-.project-settings-nav:hover, .project-settings-nav:focus-visible { color: var(--color-primary); border-color: var(--color-primary); background: var(--color-primary-light, #eff6ff); outline: none; }
 
 /* Hero 区域 */
 .hero {

@@ -21,7 +21,6 @@
       >
         <el-table-column prop="model_id" :label="t('admin.llmModels.modelId')" min-width="160" />
         <el-table-column prop="display_name" :label="t('admin.llmModels.displayName')" min-width="160" />
-        <el-table-column prop="provider" :label="t('admin.llmModels.provider')" width="120" />
         <el-table-column :label="t('admin.common.status')" width="80" align="center">
           <template #default="{ row }">
             <el-tooltip
@@ -90,7 +89,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="isEditing ? t('admin.llmModels.editTitle') : t('admin.llmModels.add')"
-      width="560px"
+      width="min(560px, calc(100vw - 32px))"
       destroy-on-close
     >
       <el-form :model="form" label-width="110px" label-position="right" ref="formRef" :rules="rules">
@@ -102,6 +101,7 @@
         </el-form-item>
         <el-form-item label="Base URL" prop="base_url">
           <el-input v-model="form.base_url" :placeholder="t('admin.llmModels.baseUrlPlaceholder')" />
+          <div class="form-tip">{{ t('admin.llmModels.baseUrlTip') }}</div>
         </el-form-item>
         <el-form-item label="API Key" :prop="isEditing ? '' : 'api_key'">
           <el-input
@@ -125,41 +125,44 @@
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item :label="t('admin.llmModels.provider')">
-              <el-input v-model="form.provider" :placeholder="t('admin.llmModels.providerPlaceholder')" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
             <el-form-item :label="t('admin.llmModels.sortOrder')">
               <el-input-number v-model="form.sort_order" :min="0" style="width: 100%" />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item :label="t('admin.llmModels.enabled')">
               <el-switch v-model="form.is_enabled" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="24">
             <el-form-item :label="t('admin.llmModels.defaultModel')">
               <el-switch v-model="form.is_default" />
+              <span class="switch-tip">{{ t('admin.llmModels.defaultTip') }}</span>
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">{{ t('admin.actions.cancel') }}</el-button>
-        <el-button type="primary" @click="saveModel" :loading="saving">
-          {{ isEditing ? t('admin.actions.save') : t('admin.actions.create') }}
-        </el-button>
+        <div class="dialog-footer">
+          <el-button :icon="Connection" :loading="testingConfig" @click="testDialogConfig">
+            {{ t('admin.llmModels.testConnection') }}
+          </el-button>
+          <div class="dialog-footer-main">
+            <el-button @click="dialogVisible = false">{{ t('admin.actions.cancel') }}</el-button>
+            <el-button type="primary" @click="saveModel" :loading="saving">
+              {{ isEditing ? t('admin.actions.save') : t('admin.actions.create') }}
+            </el-button>
+          </div>
+        </div>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus, Edit, Delete, Connection } from '@element-plus/icons-vue'
@@ -170,6 +173,8 @@ const { t, locale } = useI18n()
 
 const loading = ref(false)
 const saving = ref(false)
+const testingConfig = ref(false)
+const autoFilledName = ref('')
 const models = ref([])
 const dialogVisible = ref(false)
 const isEditing = ref(false)
@@ -183,7 +188,6 @@ const defaultForm = () => ({
   api_key: '',
   context_limit: 128000,
   max_output_tokens: 32768,
-  provider: '',
   is_enabled: true,
   is_default: false,
   sort_order: 0,
@@ -231,10 +235,56 @@ async function testModel(row) {
   }
 }
 
+// 弹窗内“测试连通”：直接用表单当前值探测，不依赖是否已保存（编辑时留空 Key 自动复用已保存密钥）
+async function testDialogConfig() {
+  const modelId = String(form.model_id || '').trim()
+  if (!modelId) {
+    ElMessage.warning(t('admin.llmModels.testNeedsModelId'))
+    return
+  }
+  if (!String(form.base_url || '').trim()) {
+    ElMessage.warning(t('admin.llmModels.testNeedsBaseUrl'))
+    return
+  }
+  if (!isEditing.value && !form.api_key) {
+    ElMessage.warning(t('admin.llmModels.testNeedsApiKey'))
+    return
+  }
+  testingConfig.value = true
+  try {
+    const res = await api.post('/api/admin/llm-models/test-config', {
+      model_id: modelId,
+      base_url: String(form.base_url).trim(),
+      api_key: form.api_key || '',
+      id: isEditing.value ? editingId.value : null,
+    })
+    const { ok, latency_ms, error } = res.data
+    if (ok) {
+      ElMessage.success(t('admin.llmModels.testSucceeded', { model: modelId, latency: formatNumber(latency_ms) }))
+    } else {
+      ElMessage.warning(t('admin.llmModels.testFailed', { model: modelId, error }))
+    }
+  } catch (e) {
+    ElMessage.error(e.response?.data?.detail || t('admin.llmModels.testRequestFailed'))
+  } finally {
+    testingConfig.value = false
+  }
+}
+
+// 模型 ID 录入后自动同步显示名称；若用户手动改过名称则不再覆盖
+watch(() => form.model_id, (val) => {
+  if (!val || isEditing.value) return
+  if (!form.display_name || form.display_name === autoFilledName.value) {
+    form.display_name = val
+    autoFilledName.value = val
+  }
+})
+
 // 打开新增弹窗
 function openCreateDialog() {
   isEditing.value = false
   editingId.value = null
+  autoFilledName.value = ''
   Object.assign(form, defaultForm())
   dialogVisible.value = true
 }
@@ -250,7 +300,6 @@ function openEditDialog(row) {
     api_key: '',
     context_limit: row.context_limit,
     max_output_tokens: row.max_output_tokens,
-    provider: row.provider || '',
     is_enabled: row.is_enabled,
     is_default: row.is_default,
     sort_order: row.sort_order,
@@ -368,5 +417,26 @@ onMounted(loadModels)
 }
 .section-card {
   margin-bottom: 16px;
+}
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+.dialog-footer-main {
+  display: flex;
+}
+.form-tip {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+}
+.switch-tip {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

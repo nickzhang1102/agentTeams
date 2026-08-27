@@ -38,6 +38,11 @@
 *.7z
 *.tar.gz
 
+# Python 缓存产物（任意层级，防 scripts/__pycache__/ 等误提交）
+__pycache__/
+*.py[cod]
+*$py.class
+
 # 本地工具与缓存产物
 /.pytest_cache/
 /.codegraph/

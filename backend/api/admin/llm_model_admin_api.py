@@ -49,6 +49,15 @@ class LLMModelUpdateRequest(BaseModel):
     sort_order: Optional[int] = Field(default=None, ge=0)
 
 
+class LLMModelTestRequest(BaseModel):
+    """弹窗内"测试连通"请求：用未保存的表单值探测，不落库、不更新探活状态"""
+    model_id: str = Field(..., min_length=1, max_length=200)
+    base_url: str = Field(..., min_length=1, max_length=500)
+    # 留空且提供 id 时回退该已保存模型的密钥（EncryptedText 在 ORM 层自动解密）
+    api_key: Optional[str] = Field(default=None, max_length=500)
+    id: Optional[int] = None
+
+
 # ==================== 路由 ====================
 
 @router.get("")
@@ -149,6 +158,28 @@ async def test_model(model_id: int, admin=Depends(get_admin_user)):
     db.commit()
 
     return result
+
+
+@router.post("/test-config")
+async def test_model_config(req: LLMModelTestRequest, admin=Depends(get_admin_user)):
+    """测试"尚未保存"的模型配置（供新增/编辑弹窗调用）。
+
+    该路由同时挂载在 /api/admin 与 /api/project 下（project router 复用本 router），
+    两处弹窗共用同一逻辑：不做唯一性校验、不写库、不更新 last_test_* 字段。
+    """
+    api_key = req.api_key
+    if not api_key and req.id is not None:
+        stored = db.get(LLMModel, req.id)
+        if stored is not None:
+            api_key = stored.api_key
+
+    if not api_key:
+        raise HTTPException(status_code=400, detail="缺少 API Key：请填写密钥后再测试")
+
+    probe = LLMModel(model_id=req.model_id, base_url=req.base_url, api_key=api_key)
+
+    # 同步阻塞的 OpenAI 调用放入线程池，避免阻塞事件循环
+    return await asyncio.to_thread(_test_model_connection, probe)
 
 
 # ==================== 内部工具 ====================

@@ -44,6 +44,7 @@ export default {
       knowledge: 'Knowledge base',
       projectSettings: 'Project settings',
       settings: 'Settings (change password)',
+      admin: 'Admin console',
       logout: 'Log out',
       login: 'Log in',
       register: 'Register',

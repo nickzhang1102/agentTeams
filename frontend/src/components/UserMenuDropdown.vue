@@ -30,6 +30,11 @@
               <el-icon><Lock /></el-icon>
               {{ t('auth.menu.settings') }}
             </el-dropdown-item>
+            <!-- 管理后台入口（仅管理员可见，对齐 OncoPath 系统管理入口） -->
+            <el-dropdown-item v-if="authStore.user?.is_admin" divided command="admin">
+              <el-icon><Management /></el-icon>
+              {{ t('auth.menu.admin') }}
+            </el-dropdown-item>
             <el-dropdown-item divided command="logout">
               <el-icon><SwitchButton /></el-icon>
               {{ t('auth.menu.logout') }}
@@ -105,7 +110,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { User, Operation, FolderOpened, Lock, SwitchButton, Setting } from '@element-plus/icons-vue'
+import { User, Operation, FolderOpened, Lock, SwitchButton, Setting, Management } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps({
@@ -177,7 +182,8 @@ const NAV_ROUTES = {
   agents: '/agents',
   templates: '/templates',
   knowledge: '/knowledge',
-  projectSettings: '/project/settings'
+  projectSettings: '/project/settings',
+  admin: '/admin'
 }
 
 function handleCommand(command) {

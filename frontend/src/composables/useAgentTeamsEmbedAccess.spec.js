@@ -297,7 +297,7 @@ describe('useAgentTeamsEmbedAccess request generations', () => {
     access.stop()
   })
 
-  it('asks the parent to renew an expired embed token', async () => {
+  it('surfaces an expired embed token without requesting renewal', async () => {
     const postMessage = vi.spyOn(window, 'postMessage').mockImplementation(() => {})
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
       ok: false,
@@ -308,9 +308,10 @@ describe('useAgentTeamsEmbedAccess request generations', () => {
 
     await access.start()
 
-    expect(postMessage).toHaveBeenCalledWith({
+    expect(postMessage).not.toHaveBeenCalledWith({
       type: 'agentteams:embed-renew-required',
     }, '*')
+    expect(access.error.value).toBe('expired')
     access.stop()
   })
 

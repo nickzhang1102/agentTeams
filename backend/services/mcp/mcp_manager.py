@@ -169,7 +169,7 @@ def init_mcp_manager() -> None:
 
     thread = threading.Thread(target=run_async_init, name="mcp-init", daemon=True)
     thread.start()
-    thread.join(timeout=30)  # 等待初始化完成，最多 30 秒（daemon 保证超时挂起不阻碍进程退出）
+    thread.join(timeout=30)  # 等待初始化完成，最多 30 秒，后台线程不会阻碍进程退出
 
     if thread.is_alive():
         logger.warning("MCP init thread did not complete in 30s, continuing anyway")

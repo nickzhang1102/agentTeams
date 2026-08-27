@@ -44,6 +44,7 @@ export default {
       knowledge: '知识库',
       projectSettings: '项目配置',
       settings: '设置（修改密码）',
+      admin: '管理后台',
       logout: '退出登录',
       login: '登录',
       register: '注册',
