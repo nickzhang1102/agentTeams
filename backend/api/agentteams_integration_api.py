@@ -12,7 +12,10 @@ from config import Config
 from models import AgentTeamsLaunch
 from services.agentteams_integration_launch import (
     EXTERNAL_REQUEST_ID_MAX_LENGTH,
+    LAUNCH_TITLE_MAX_LENGTH,
     AgentTeamsLaunchError,
+    build_integration_capabilities,
+    check_integration_protocol_version,
     get_agentteams_embed_session,
     get_agentteams_embed_status,
     get_agentteams_launch_by_request_id,
@@ -45,7 +48,7 @@ class AgentTeamsLaunchRequest(BaseModel):
     source_user_id: Optional[str] = None
     source_patient_id: Optional[str] = None
     source_conversation_id: Optional[Any] = None
-    title: Optional[str] = Field(default="Agent Teams consultation", max_length=500)
+    title: Optional[str] = Field(default="Agent Teams consultation", max_length=LAUNCH_TITLE_MAX_LENGTH)
     message: Optional[str] = None
     locale: Literal['zh-CN', 'en-US'] = 'zh-CN'
     metadata: Optional[dict[str, Any]] = None
@@ -57,14 +60,18 @@ class AgentTeamsEmbedAnswersRequest(BaseModel):
 
 
 class IntegrationLaunchRequest(BaseModel):
-    """与提供商无关的启动载荷；不含任何患者专属字段名。"""
+    """与提供商无关的启动载荷；不含任何患者专属字段名。
 
-    user_ref: Optional[str] = Field(default=None, max_length=100)
-    subject_ref: Optional[str] = Field(default=None, max_length=100)
-    conversation_ref: Optional[str] = Field(default=None, max_length=100)
-    title: Optional[str] = Field(default=None, max_length=500)
-    message: str = Field(..., min_length=1)
-    locale: str = Field(default='zh-CN', max_length=20)
+    长度约束由服务层（_validate_launch_payload）统一校验并返回契约内
+    ``invalid_payload`` 错误码，避免模型层 422 破坏错误形状。
+    """
+
+    user_ref: Optional[str] = None
+    subject_ref: Optional[str] = None
+    conversation_ref: Optional[str] = None
+    title: Optional[str] = None
+    message: str
+    locale: str = 'zh-CN'
     metadata: Optional[dict[str, Any]] = None
 
 
@@ -92,12 +99,14 @@ async def create_generic_consultation_launch(
     response: Response,
     x_integration_key: Optional[str] = Header(default=None, alias='X-Integration-Key'),
     x_request_id: Optional[str] = Header(default=None, alias='X-Request-Id'),
+    x_protocol_version: Optional[str] = Header(default=None, alias='X-Integration-Protocol-Version'),
     db_session: Session = Depends(get_db),
 ):
     """通用启动契约；遗留的 Agent Teams 路由保持不变。"""
     _set_embed_security_headers(response)
     register_builtin_adapters()
     try:
+        check_integration_protocol_version(x_protocol_version)
         gateway = IntegrationGateway(db_session)
         client = gateway.authenticate(client_key, x_integration_key)
         normalized_request_id = _generic_request_id(x_request_id)
@@ -158,12 +167,14 @@ def get_generic_consultation_status(
     request_id: str,
     response: Response,
     x_integration_key: Optional[str] = Header(default=None, alias='X-Integration-Key'),
+    x_protocol_version: Optional[str] = Header(default=None, alias='X-Integration-Protocol-Version'),
     db_session: Session = Depends(get_db),
 ):
     """读取与提供商无关的启动状态，不创建工作。"""
     _set_embed_security_headers(response)
     register_builtin_adapters()
     try:
+        check_integration_protocol_version(x_protocol_version)
         gateway = IntegrationGateway(db_session)
         client = gateway.authenticate(client_key, x_integration_key)
         return gateway.get_status(client, request_id=_generic_request_id(request_id))
@@ -179,15 +190,40 @@ def reconcile_generic_consultation(
     request_id: str,
     response: Response,
     x_integration_key: Optional[str] = Header(default=None, alias='X-Integration-Key'),
+    x_protocol_version: Optional[str] = Header(default=None, alias='X-Integration-Protocol-Version'),
     db_session: Session = Depends(get_db),
 ):
     """通过适配器 SPI 执行一次只读的对账查询。"""
     _set_embed_security_headers(response)
     register_builtin_adapters()
     try:
+        check_integration_protocol_version(x_protocol_version)
         gateway = IntegrationGateway(db_session)
         client = gateway.authenticate(client_key, x_integration_key)
         return gateway.reconcile(client, request_id=_generic_request_id(request_id))
+    except IntegrationClientError as error:
+        raise HTTPException(status_code=error.status_code, detail={'error': error.error_code, 'message': error.message})
+    except AgentTeamsLaunchError as error:
+        _raise_launch_error(error)
+
+
+@generic_router.get('/{client_key}/capabilities')
+def get_generic_integration_capabilities(
+    client_key: str,
+    response: Response,
+    x_integration_key: Optional[str] = Header(default=None, alias='X-Integration-Key'),
+    db_session: Session = Depends(get_db),
+):
+    """宣告协议版本、能力、限额与状态/错误码词表（契约 v1 的运行时事实源）。
+
+    只读、不创建会话、不调度工作流；认证失败时返回契约内认证错误码。
+    """
+    _set_embed_security_headers(response)
+    register_builtin_adapters()
+    try:
+        gateway = IntegrationGateway(db_session)
+        client = gateway.authenticate(client_key, x_integration_key)
+        return build_integration_capabilities(client)
     except IntegrationClientError as error:
         raise HTTPException(status_code=error.status_code, detail={'error': error.error_code, 'message': error.message})
     except AgentTeamsLaunchError as error:

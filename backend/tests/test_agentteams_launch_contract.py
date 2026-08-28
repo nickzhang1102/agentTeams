@@ -1306,6 +1306,8 @@ def test_launch_reconciliation_is_read_only(client, monkeypatch):
         'found': True,
         'request_id': 'req-read-only-reconciliation',
         'status': 'created',
+        'remote_conversation_id': created.json()['remote_conversation_id'],
+        'remote_session_id': created.json()['remote_session_id'],
         'agentteams_conversation_id': created.json()['agentteams_conversation_id'],
         'agentteams_session_id': created.json()['agentteams_session_id'],
         'source_conversation_id': '789',
@@ -2120,3 +2122,188 @@ def test_background_workflow_failure_marks_launch_failed(db_session, monkeypatch
     assert leader_session.state == 'failed'
     assert launch.status == 'failed'
     assert launch.error_code == 'agentteams_launch_failed'
+
+
+# ===== 契约 v1：capabilities / 版本握手 / 中立信封 =====
+
+
+def test_generic_capabilities_declares_contract_v1(client):
+    session = TestSessionLocal()
+    try:
+        _prepare_service_account(session)
+    finally:
+        session.close()
+
+    response = client.get(
+        '/api/integrations/v1/agentteams/capabilities',
+        headers={'X-Integration-Key': 'test-integration-key'},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data['protocol_version'] == 1
+    assert data['min_protocol_version'] == 1
+    assert data['api_version'] == 'v1'
+    assert data['capabilities']['launch'] is True
+    assert data['capabilities']['status_query'] is True
+    assert data['capabilities']['reconcile'] is True
+    assert data['limits']['message_max_length'] == 100000
+    assert data['limits']['metadata_max_length'] == 20000
+    assert data['limits']['request_id_max_length'] == 100
+    assert 'zh-CN' in data['locales']
+    assert data['statuses'] == ['created', 'running', 'completed', 'failed', 'stopped', 'not_found']
+    for code in (
+        'invalid_integration_key',
+        'invalid_payload',
+        'idempotency_conflict',
+        'unsupported_version',
+        'integration_client_not_found',
+    ):
+        assert code in data['error_codes']
+    assert data['client']['client_key'] == 'agentteams'
+    assert data['client']['legacy_fallback'] is True
+
+
+def test_capabilities_requires_valid_integration_key(client):
+    session = TestSessionLocal()
+    try:
+        _prepare_service_account(session)
+    finally:
+        session.close()
+
+    response = client.get(
+        '/api/integrations/v1/agentteams/capabilities',
+        headers={'X-Integration-Key': 'wrong-key'},
+    )
+    assert response.status_code == 401
+    # 应用级 401 处理器把 detail 展开为顶层 {error, message}
+    assert response.json()['error'] == 'invalid_integration_key'
+
+
+def test_generic_launch_honors_protocol_version_handshake(client, monkeypatch):
+    monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
+    session = TestSessionLocal()
+    try:
+        _prepare_service_account(session)
+    finally:
+        session.close()
+
+    too_new = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches',
+        json={'conversation_ref': 'version-check', 'message': 'x'},
+        headers={
+            'X-Integration-Key': 'test-integration-key',
+            'X-Request-Id': 'version-too-new',
+            'X-Integration-Protocol-Version': '2',
+        },
+    )
+    assert too_new.status_code == 426
+    assert too_new.json()['detail']['error'] == 'unsupported_version'
+
+    not_an_int = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches',
+        json={'conversation_ref': 'version-check', 'message': 'x'},
+        headers={
+            'X-Integration-Key': 'test-integration-key',
+            'X-Request-Id': 'version-not-int',
+            'X-Integration-Protocol-Version': 'next-gen',
+        },
+    )
+    assert not_an_int.status_code == 400
+    assert not_an_int.json()['detail']['error'] == 'invalid_payload'
+
+
+def test_generic_launch_rejects_invalid_payload_with_contract_error(client, monkeypatch):
+    """模型层不做长度/成员约束：超限载荷必须以契约内 400 invalid_payload
+    返回，而不是 Fastapi 的 422，保证错误形状稳定。"""
+    monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
+    session = TestSessionLocal()
+    try:
+        _prepare_service_account(session)
+    finally:
+        session.close()
+
+    headers = {'X-Integration-Key': 'test-integration-key', 'X-Request-Id': 'req-contract-shape'}
+
+    overlong_title = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches',
+        json={
+            'user_ref': 'external-user-1',
+            'subject_ref': 'subject-42',
+            'conversation_ref': 'conversation-9',
+            'title': 'x' * 501,
+            'message': '请生成会诊意见。',
+        },
+        headers=headers,
+    )
+    assert overlong_title.status_code == 400
+    assert overlong_title.json()['detail']['error'] == 'invalid_payload'
+
+    blank_message = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches',
+        json={
+            'user_ref': 'external-user-1',
+            'conversation_ref': 'conversation-9',
+            'message': '   ',
+        },
+        headers=headers,
+    )
+    assert blank_message.status_code == 400
+    assert blank_message.json()['detail']['error'] == 'invalid_payload'
+
+    bad_locale = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches',
+        json={
+            'user_ref': 'external-user-1',
+            'conversation_ref': 'conversation-9',
+            'message': '请生成会诊意见。',
+            'locale': 'fr-FR',
+        },
+        headers=headers,
+    )
+    assert bad_locale.status_code == 400
+    assert bad_locale.json()['detail']['error'] == 'invalid_payload'
+
+
+def test_generic_launch_response_has_neutral_envelope(client, monkeypatch):
+    monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
+    session = TestSessionLocal()
+    try:
+        _prepare_service_account(session)
+    finally:
+        session.close()
+
+    response = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches',
+        json={
+            'user_ref': 'external-user-1',
+            'subject_ref': 'subject-42',
+            'conversation_ref': 'conversation-9',
+            'title': '外部系统会诊',
+            'message': '请生成会诊意见。',
+            'locale': 'zh-CN',
+            'metadata': {'tenant': 'demo'},
+        },
+        headers={
+            'X-Integration-Key': 'test-integration-key',
+            'X-Request-Id': 'neutral-envelope-1',
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data['remote_conversation_id'] == data['agentteams_conversation_id']
+    assert data['remote_session_id'] == data['agentteams_session_id']
+    assert data['conversation_ref'] == 'conversation-9'
+    assert data['subject_ref'] == 'subject-42'
+    assert data['user_ref'] == 'external-user-1'
+    assert data['embed_path'].startswith('/embed/conversation/')
+    assert data['metadata']['provider'] == 'agentteams'
+    assert data['metadata']['agentteams_conversation_id'] == data['agentteams_conversation_id']
+    assert '_start_background' not in data  # 调度器已消费，不泄漏给调用方
+
+    found = client.get(
+        '/api/integrations/v1/agentteams/consultation-launches/neutral-envelope-1',
+        headers={'X-Integration-Key': 'test-integration-key'},
+    )
+    assert found.status_code == 200
+    assert found.json()['remote_conversation_id'] == data['agentteams_conversation_id']
+    assert found.json()['remote_session_id'] == data['agentteams_session_id']

@@ -60,6 +60,87 @@ EXTERNAL_REQUEST_ID_MAX_LENGTH = 100
 # 存储列宽：外部 ID 加 client 命名空间前缀（client_key ≤50 + 分隔符）。
 REQUEST_ID_STORAGE_MAX_LENGTH = 200
 AGENTTEAMS_SUPPORTED_LOCALES = {'zh-CN', 'en-US'}
+
+# 集成协议契约 v1（本地镜像见 oncopath app/services/agentteams_contract.py）：
+# 版本握手 + 限额宣告 + 规范状态集。调用方通过 capabilities 端点获取运行时事实。
+INTEGRATION_PROTOCOL_VERSION = 1
+MIN_INTEGRATION_PROTOCOL_VERSION = 1
+LAUNCH_REF_MAX_LENGTH = 100
+LAUNCH_TITLE_MAX_LENGTH = 500
+# 规范状态集：launch/status 对外可见状态；not_found 仅出现在查询响应中。
+INTEGRATION_STATUSES = ['created', 'running', 'completed', 'failed', 'stopped', 'not_found']
+# 契约内错误码（admins 管理面错误码不在此列，见 docs/deployment/integration-clients.md）。
+INTEGRATION_ERROR_CODES = [
+    'invalid_integration_key',
+    'invalid_client',
+    'invalid_payload',
+    'integration_client_not_found',
+    'integration_capability_disabled',
+    'integration_disabled',
+    'service_account_not_configured',
+    'integration_adapter_unavailable',
+    'idempotency_conflict',
+    'unsupported_version',
+    'invalid_embed_token',
+    'embed_session_not_found',
+]
+INTEGRATION_LIMITS = {
+    'message_max_length': AGENTTEAMS_MESSAGE_MAX_LENGTH,
+    'metadata_max_length': AGENTTEAMS_METADATA_MAX_LENGTH,
+    'request_id_max_length': EXTERNAL_REQUEST_ID_MAX_LENGTH,
+    'title_max_length': LAUNCH_TITLE_MAX_LENGTH,
+    'ref_max_length': LAUNCH_REF_MAX_LENGTH,
+    'min_message_length': 1,
+}
+
+
+def check_integration_protocol_version(declared: str | None) -> None:
+    """版本握手：声明版本超出本部署支持范围时抛 426 unsupported_version。
+
+    缺失或空值视为当前版本，兼容尚未接入版本握手的旧调用方。
+    """
+    if declared is None or not str(declared).strip():
+        return
+    raw = str(declared).strip()
+    try:
+        version = int(raw)
+    except (TypeError, ValueError):
+        raise AgentTeamsLaunchError(
+            400,
+            'invalid_payload',
+            'X-Integration-Protocol-Version must be an integer',
+        )
+    if version > INTEGRATION_PROTOCOL_VERSION or version < MIN_INTEGRATION_PROTOCOL_VERSION:
+        raise AgentTeamsLaunchError(
+            426,
+            'unsupported_version',
+            f'Integration protocol version {raw} is not supported '
+            f'(supported range {MIN_INTEGRATION_PROTOCOL_VERSION}-{INTEGRATION_PROTOCOL_VERSION})',
+        )
+
+
+def build_integration_capabilities(client) -> dict[str, Any]:
+    """宣告协议版本、能力、限额与词表（契约 v1 的运行时单一事实源）。
+
+    ``client`` 是已认证的 IntegrationClientContext；本函数不触碰数据库。
+    """
+    return {
+        'protocol_version': INTEGRATION_PROTOCOL_VERSION,
+        'min_protocol_version': MIN_INTEGRATION_PROTOCOL_VERSION,
+        'api_version': 'v1',
+        'capabilities': dict(getattr(client, 'capabilities', None) or {}),
+        'limits': dict(INTEGRATION_LIMITS),
+        'locales': sorted(AGENTTEAMS_SUPPORTED_LOCALES),
+        'statuses': list(INTEGRATION_STATUSES),
+        'error_codes': list(INTEGRATION_ERROR_CODES),
+        'client': {
+            'client_key': client.client_key,
+            'adapter_key': str(getattr(client, 'adapter_key', '') or ''),
+            'display_name': getattr(client, 'display_name', ''),
+            'enabled': bool(getattr(client, 'enabled', False)),
+            'legacy_fallback': bool(getattr(client, 'legacy_fallback', False)),
+        },
+    }
 AGENTTEAMS_TERMINAL_STATES = {'completed', 'failed', 'stopped'}
 AGENTTEAMS_EMBED_EVENT_POLL_SECONDS = 1.0
 AGENTTEAMS_EMBED_PROGRESS_KEY = '_embed_progress'
@@ -279,12 +360,18 @@ def _validate_launch_payload(payload: dict[str, Any], request_id: str | None) ->
         raise AgentTeamsLaunchError(400, 'invalid_payload', 'source must be agentteams')
     for field in ('source_user_id', 'source_patient_id', 'source_conversation_id'):
         value = payload.get(field)
-        if value is not None and len(str(value)) > 100:
+        if value is not None and len(str(value)) > LAUNCH_REF_MAX_LENGTH:
             raise AgentTeamsLaunchError(
                 400,
                 'invalid_payload',
-                f'{field} must be at most 100 characters',
+                f'{field} must be at most {LAUNCH_REF_MAX_LENGTH} characters',
             )
+    if payload.get('title') is not None and len(str(payload.get('title'))) > LAUNCH_TITLE_MAX_LENGTH:
+        raise AgentTeamsLaunchError(
+            400,
+            'invalid_payload',
+            f'title must be at most {LAUNCH_TITLE_MAX_LENGTH} characters',
+        )
     if not str(payload.get('message') or '').strip():
         raise AgentTeamsLaunchError(400, 'invalid_payload', 'message is required')
     if payload.get('source_conversation_id') in (None, ''):
@@ -415,14 +502,33 @@ def _launch_response(
             launch.agentteams_leader_session_id
         )
     locale = conversation.default_locale if conversation else 'zh-CN'
+    run_id = str(decision_run.run_id) if decision_run else None
+    share_token = conversation.share_token if conversation else None
+    embed_path = f'/embed/conversation/{embed_token}?locale={locale}'
+    # 契约 v1 中立信封：provider 无关字段双发（与遗留 agentteams_* 并存过渡）。
+    # 外部调用方应优先读取顶层中立字段；provider 明细放入 metadata。
     return {
-        'run_id': str(decision_run.run_id) if decision_run else None,
+        'status': status,
+        'embed_path': embed_path,
+        'remote_conversation_id': launch.agentteams_conversation_id,
+        'remote_session_id': launch.agentteams_leader_session_id,
+        'conversation_ref': launch.source_conversation_id,
+        'subject_ref': launch.source_patient_id,
+        'user_ref': launch.source_user_id,
+        'metadata': {
+            'provider': AGENTTEAMS_SOURCE,
+            'embed_token': embed_token,
+            'run_id': run_id,
+            'agentteams_conversation_id': launch.agentteams_conversation_id,
+            'agentteams_session_id': launch.agentteams_leader_session_id,
+            'agentteams_share_token': share_token,
+        },
+        # 遗留字段（过渡期保留；契约标注废弃，迁移完成后移除）
+        'run_id': run_id,
         'agentteams_conversation_id': launch.agentteams_conversation_id,
-        'agentteams_share_token': conversation.share_token if conversation else None,
+        'agentteams_share_token': share_token,
         'agentteams_session_id': launch.agentteams_leader_session_id,
         'embed_token': embed_token,
-        'embed_path': f'/embed/conversation/{embed_token}?locale={locale}',
-        'status': status,
         '_start_background': start_background,
     }
 
@@ -859,6 +965,9 @@ def get_agentteams_launch_by_request_id(
         'found': True,
         'request_id': launch.request_id,
         'status': launch.status or 'created',
+        # 契约 v1 中立别名（遗留字段保留过渡）
+        'remote_conversation_id': launch.agentteams_conversation_id,
+        'remote_session_id': launch.agentteams_leader_session_id,
         'agentteams_conversation_id': launch.agentteams_conversation_id,
         'agentteams_session_id': launch.agentteams_leader_session_id,
         'source_conversation_id': launch.source_conversation_id,

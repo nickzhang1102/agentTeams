@@ -22,6 +22,17 @@ from models import User, AgentConfig
 from db import Base
 
 
+@pytest.fixture(autouse=True)
+def cleanup_created_agent_file():
+    """Remove API-created test files even when the test fails mid-assertion."""
+    yield
+    from api.admin.admin_helpers import get_file_manager
+
+    agent_file = get_file_manager().agents_dir / 'test-new-agent.md'
+    if agent_file.exists():
+        agent_file.unlink()
+
+
 # ==================== 测试数据 fixture ====================
 
 @pytest.fixture

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { resolveHistoryBase } from '@/utils/embedBase'
 
 const routes = [
   {
@@ -153,8 +154,12 @@ const routes = [
   }
 ]
 
+// 支持被宿主站点（如 OncoPath）以同站反代方式嵌入：
+// 嵌入 iframe 的浏览器地址是 <宿主>/<前缀>/embed/...，路由表却是 /embed/...，
+// 直接裸 createWebHistory() 会因前缀不匹配导致白屏。此处按运行期 pathname
+// 推导宿主挂载前缀作为 base，前缀不写死，随宿主部署可配置。
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(resolveHistoryBase()),
   routes
 })
 

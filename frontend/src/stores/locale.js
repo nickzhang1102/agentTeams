@@ -10,6 +10,7 @@ import {
   isSupportedLocale,
   normalizeBrowserLocale,
 } from '@/locales'
+import { resolveEmbedPrefix } from '@/utils/embedBase'
 
 const LOCALE_STORAGE_KEY = 'preferred_locale'
 
@@ -37,7 +38,10 @@ function readBrowserLocale() {
 }
 
 function readEmbedLocale() {
-  if (typeof window === 'undefined' || !window.location.pathname.startsWith('/embed/')) return null
+  if (typeof window === 'undefined') return null
+  // 嵌入路径可能带宿主挂载前缀（如 OncoPath 同站反代的 /agentteams）；
+  // 前缀随宿主部署而定，按 /embed/ 路径段识别，不写死具体前缀。
+  if (resolveEmbedPrefix(window.location.pathname) === null) return null
   const value = new URLSearchParams(window.location.search).get('locale')
   return isSupportedLocale(value) ? value : null
 }

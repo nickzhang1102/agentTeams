@@ -136,6 +136,17 @@ describe('locale store', () => {
     expect(document.documentElement.lang).toBe('zh-CN')
   })
 
+  it('recognizes host-prefixed embed paths without hardcoding the prefix', async () => {
+    localStorage.setItem('preferred_locale', 'en-US')
+    window.history.replaceState({}, '', '/agentteams/embed/conversation/token?locale=zh-CN')
+    const store = useLocaleStore()
+
+    await store.initializeLocale()
+
+    expect(store.locale).toBe('zh-CN')
+    expect(document.documentElement.lang).toBe('zh-CN')
+  })
+
   it('persists an explicit selection that matches the resolved locale', async () => {
     Object.defineProperty(navigator, 'languages', {
       configurable: true,

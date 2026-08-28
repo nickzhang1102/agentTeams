@@ -15,6 +15,25 @@ from tests.conftest import TestSessionLocal
 from models import User, Conversation, AgentConfig
 
 
+@pytest.fixture(autouse=True)
+def mock_leader_workflow(monkeypatch):
+    """Validate the API contract without starting a real LangGraph/LLM run."""
+
+    async def fake_async_run_leader_workflow(
+        *, existing_session_id=None, **_kwargs
+    ):
+        yield {
+            'type': 'done',
+            'session_id': existing_session_id,
+            'message': 'Workflow completed',
+        }
+
+    monkeypatch.setattr(
+        'api.leader_api.async_run_leader_workflow',
+        fake_async_run_leader_workflow,
+    )
+
+
 @pytest.fixture
 def setup_quick_mode_data(auth_header):
     """创建快速模式测试所需的数据"""

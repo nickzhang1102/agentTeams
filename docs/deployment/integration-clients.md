@@ -70,6 +70,88 @@ GET /api/admin/integration-clients/{client_key}/embed-tokens/revoke/{operation_i
 
 省略 `operation_id` 时系统按 `client_key + request_id` 派生稳定的本地 operation ID。重复提交同一个 operation 会返回第一次完成的结果，不会新增撤销或审计动作；跨 client 的 request ID 返回未找到。响应中的 `remote_action=not_implemented` 必须保留原义，不能解读为远端已删除、已匿名化或已退款。
 
+## 集成协议契约 v1（调用方契约）
+
+本节是与通用集成接口配套的 **v1 协议契约**，供外部调用方（如 OncoPath）实现。契约的运行时单一事实源是 capabilities 端点；调用方应先探测它，再按宣告值消费。
+
+### 端点
+
+```text
+GET  /api/integrations/v1/{client_key}/capabilities                       # 版本/能力/限额/词表宣告
+POST /api/integrations/v1/{client_key}/consultation-launches              # 启动（幂等）
+GET  /api/integrations/v1/{client_key}/consultation-launches/{request_id} # 对账（只读）
+POST /api/integrations/v1/{client_key}/consultation-launches/{request_id}/reconcile # 对账（只读）
+```
+
+### 请求头
+
+| 头 | 必填 | 说明 |
+| --- | --- | --- |
+| `X-Integration-Key` | 是 | 集成密钥（两端共享的明文，本端 sha256 哈希存储） |
+| `X-Request-Id` | 启动必填 | 调用方稳定的幂等键，≤100 字符 |
+| `X-Integration-Protocol-Version` | 否 | 调用方声明协议版本，默认 1；超出支持范围返回 426 `unsupported_version` |
+
+版本握手：声明版本高于当前部署或低于最低支持版本时，返回 `426 unsupported_version`；非整数声明返回 `400 invalid_payload`。未声明视为当前版本（向后兼容）。
+
+### 启动载荷（provider-neutral）
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `user_ref` | string≤100 | 调用方用户引用 |
+| `subject_ref` | string≤100 | 调用方主体引用（OncoPath 为 patient_id） |
+| `conversation_ref` | string≤100 | 调用方会诊引用（必填） |
+| `title` | string≤500 | 会诊标题 |
+| `message` | string 1..100000 | 会诊材料正文（必填） |
+| `locale` | `zh-CN` / `en-US` | 语言 |
+| `metadata` | object≤20000（序列化） | 调用方自定义元数据 |
+
+### 响应信封（中立字段 + 遗留字段双发）
+
+外部调用方应优先读取顶层**中立字段**；`agentteams_*` 遗留字段在过渡期保留、标记废弃：
+
+| 中立字段 | 说明 |
+| --- | --- |
+| `request_id` | 调用方 request id（status 响应） |
+| `status` | 规范状态 |
+| `embed_path` | 嵌入路径（前端拼 base_url 使用） |
+| `remote_conversation_id` / `remote_session_id` | provider 无关的远端会话标识 |
+| `conversation_ref` / `subject_ref` / `user_ref` | 回显调用方引用 |
+| `metadata` | provider 明细（`provider`、`embed_token`、`run_id`、`agentteams_*`） |
+
+### 规范状态集
+
+`created | running | completed | failed | stopped`；查询响应附加 `not_found`（找不到记录，不代表启动未发生，调用方不得据此重发启动）。
+
+### 错误码（detail.error）
+
+| 错误码 | HTTP | 语义 |
+| --- | --- | --- |
+| `invalid_integration_key` | 401 | 密钥缺失/不匹配 |
+| `invalid_client` | 400 | client_key 缺失/非法 |
+| `invalid_payload` | 400 | 载荷违反契约（字段超长、message 缺失等） |
+| `integration_client_not_found` | 404 | client_key 未注册 |
+| `integration_capability_disabled` | 403 | 客户端未开启该能力 |
+| `integration_disabled` | 403 | 集成/客户端被禁用 |
+| `service_account_not_configured` | 403 | 服务账户未配置或不安全 |
+| `integration_adapter_unavailable` | 501 | 适配器未注册 |
+| `idempotency_conflict` | 409 | 相同 request id 载荷不一致 |
+| `unsupported_version` | 426 | 协议版本不兼容 |
+| `invalid_embed_token` / `embed_session_not_found` | 401/404 | 嵌入访问错误 |
+
+调用方不应猜测本表之外的错误码；对未登记码应记录原始码并按 HTTP 语义分类（4xx 配置/载荷、5xx 不可用），不得回显远端 message 到终端用户。
+
+表中 `invalid_client`（400）与 `integration_client_not_found`（404）指向"该部署未注册此 client_key"的部署状态类问题：调用方可按自身产品语义归类展示（例如映射为 503"集成暂不可用"），但日志中必须保留原始错误码，保证排障可追溯。
+
+### 限额（capabilities.limits 宣告为准）
+
+`message_max_length=100000`、`metadata_max_length=20000`（序列化）、`request_id_max_length=100`、`title_max_length=500`、`ref_max_length=100`、`min_message_length=1`。调用方发送前应预校验，避免超限请求换取 400。
+
+### 兼容策略
+
+- capabilities/版本握手/中立信封为叠加变更；未升级的调用方保持可用。
+- `agentteams_*` 遗留响应字段与遗留 `/api/integrations/agentteams/*` 路由仅用于过渡，契约 v2 移除。
+- 错误码 `unsupported_version` 由版本握手产生；`service_account_quota_exceeded` 已随计费下线删除，不再使用。
+
 ## 本地数据盘点
 
 管理员可以读取某个 client 的 PHI-safe 本地盘点：

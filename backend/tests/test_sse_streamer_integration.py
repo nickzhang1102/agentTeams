@@ -261,7 +261,9 @@ def test_stream_graph_events_handles_exception():
     assert len(events) > 0
     error_events = [e for e in events if e.get("type") == "error"]
     assert len(error_events) > 0
-    assert "测试异常" in error_events[0].get("message", "")
+    # 客户端只能收到通用文案，原始异常仅记录在服务端日志中。
+    assert error_events[0]["message"] == "处理请求时发生内部错误，请稍后重试"
+    assert "测试异常" not in error_events[0]["message"]
 
 
 def test_langgraph_event_to_sse_handles_missing_fields():

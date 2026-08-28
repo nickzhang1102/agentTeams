@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { applyLocale, isSupportedLocale } from '@/locales'
 import { formatMessageContent, extractQuestions } from '@/utils/messageContentFormatter'
 import { consumeSSEStream } from '@/utils/sseConsumer'
+import { embedApiPrefix } from '@/utils/embedBase'
 
 const TERMINAL_STATES = new Set(['completed', 'failed', 'stopped'])
 const INITIAL_POLL_DELAY_MS = 2000
@@ -30,9 +31,11 @@ export function useAgentTeamsEmbedAccess({ token, leaderStore, t, locale, onSnap
   const loading = ref(true)
   const error = ref('')
   const snapshotVersion = ref('')
-  const answerEndpoint = computed(
-    () => `/api/integrations/agentteams/embed-sessions/${currentToken()}/answers`
-  )
+  // API 路径带宿主挂载前缀（独立部署时前缀为空），
+  // 使同站反代场景下请求与页面同源同前缀，宿主无需镜像根路径 API。
+  const embedSessionUrl = suffix =>
+    `${embedApiPrefix()}/api/integrations/agentteams/embed-sessions/${currentToken()}${suffix}`
+  const answerEndpoint = computed(() => embedSessionUrl('/answers'))
 
   let pollTimer = null
   let reconnectTimer = null
@@ -290,7 +293,7 @@ export function useAgentTeamsEmbedAccess({ token, leaderStore, t, locale, onSnap
     activeRequest = request
     try {
       const response = await fetch(
-        `/api/integrations/agentteams/embed-sessions/${currentToken()}`,
+        embedSessionUrl(''),
         { signal: request.signal }
       )
       if (!isCurrent(requestGeneration)) return
@@ -320,7 +323,7 @@ export function useAgentTeamsEmbedAccess({ token, leaderStore, t, locale, onSnap
     activeRequest = request
     try {
       const response = await fetch(
-        `/api/integrations/agentteams/embed-sessions/${currentToken()}/status`,
+        embedSessionUrl('/status'),
         { signal: request.signal }
       )
       if (!isCurrent(requestGeneration)) return
@@ -358,7 +361,7 @@ export function useAgentTeamsEmbedAccess({ token, leaderStore, t, locale, onSnap
     let refreshChain = Promise.resolve()
     try {
       const response = await fetch(
-        `/api/integrations/agentteams/embed-sessions/${currentToken()}/events`,
+        embedSessionUrl('/events'),
         {
           headers: { Accept: 'text/event-stream' },
           signal: request.signal

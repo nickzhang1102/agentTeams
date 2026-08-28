@@ -12,6 +12,39 @@ from models import User, Conversation, LeaderSession
 from services.harness.harness_coordinator import HarnessCoordinator, get_harness_coordinator
 
 
+@pytest.fixture(autouse=True)
+def mock_openharness_execution(monkeypatch):
+    """Keep coordinator tests deterministic and independent of external LLMs."""
+
+    def fake_build_query_context(
+        self,
+        app_config,
+        agent_config,
+        agent_id,
+        user_id=None,
+        llm_service=None,
+    ):
+        return object(), 1
+
+    async def fake_execute_async(
+        self,
+        query_context,
+        messages,
+        agent_id,
+        agent_config,
+        max_turns,
+        event_callback=None,
+    ):
+        return f"fake response for {agent_id}", [], 3
+
+    monkeypatch.setattr(
+        HarnessCoordinator,
+        "_build_query_context",
+        fake_build_query_context,
+    )
+    monkeypatch.setattr(HarnessCoordinator, "_execute_async", fake_execute_async)
+
+
 def test_execute_agent_actual_execution(db_session):
     """测试 Agent 实际执行"""
     coordinator = HarnessCoordinator()

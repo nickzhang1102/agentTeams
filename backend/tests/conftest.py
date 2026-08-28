@@ -87,6 +87,9 @@ def db_session():
         yield session
     finally:
         session.close()
+        # 业务代码可能通过 db 的 scoped_session 绕过显式 fixture 会话；
+        # 移除当前线程的全局会话，避免其未提交事务阻塞测试库清理。
+        db.remove()
         # TRUNCATE 所有用户表，确保测试间数据隔离
         with test_engine.begin() as conn:
             result = conn.execute(text(
@@ -137,6 +140,7 @@ def client():
     yield TestClient(app)
 
     # 清理：删除所有表（仅测试库）
+    db.remove()
     with test_engine.connect() as conn:
         result = conn.execute(text(
             "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
