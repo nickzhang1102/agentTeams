@@ -1,5 +1,6 @@
 """Agent Teams 启动与嵌入会话原语。"""
 import asyncio
+import contextvars
 import copy
 import hashlib
 import json
@@ -1262,10 +1263,20 @@ async def run_claimed_agentteams_workflow_events(
     )
     next_event_task: asyncio.Task | None = None
     completed = False
+    # 每个事件都在独立的 task 中恢复生成器；task 创建时会快照 contextvars。
+    # async_continue_leader_workflow 在首个事件里通过 _initialize_services
+    # 写入的 NodeServices contextvar 会随该 task 的 context 副本一起丢失，
+    # 后续图节点（human_input_node 等）只能拿到空服务：questioning 状态不再
+    # 持久化，会话停在 assessing，最终被终态兜底标记为 failed。
+    # 这里让所有 anext 共享同一个可变 Context，使 contextvar 写入跨事件保留。
+    shared_context = contextvars.copy_context()
     try:
         event_iterator = events.__aiter__()
         while True:
-            next_event_task = asyncio.create_task(anext(event_iterator))
+            next_event_task = asyncio.create_task(
+                anext(event_iterator),
+                context=shared_context,
+            )
             done, _ = await asyncio.wait(
                 {next_event_task, heartbeat_task},
                 return_when=asyncio.FIRST_COMPLETED,

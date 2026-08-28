@@ -1982,6 +1982,53 @@ async def test_answer_continuation_stops_immediately_after_lease_loss(monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_answer_continuation_preserves_contextvars_across_events(monkeypatch, db_session):
+    """回归：逐事件 anext 各建独立 task 曾把 contextvars 隔离。
+
+    async_continue_leader_workflow 在首个事件里通过 _initialize_services
+    写入的 NodeServices contextvar 会随首个 task 的 context 副本丢失，
+    后续图节点（human_input_node）拿不到服务，questioning 状态不再持久化，
+    会话停在 assessing，被终态兜底标记 failed（虚拟会诊追问后停止的根因）。
+    """
+    import contextvars
+
+    marker = contextvars.ContextVar('marker', default='unset')
+
+    async def healthy_lease(*args, **kwargs):
+        await asyncio.Event().wait()
+        return True
+
+    monkeypatch.setattr(
+        'services.agentteams_integration_launch._maintain_agentteams_launch_lease',
+        healthy_lease,
+    )
+
+    observed = []
+
+    async def continuation_events():
+        marker.set('initialized')  # 模拟 _initialize_services 在首个事件前设置服务
+        yield {'type': 'leader_thinking'}
+        observed.append(marker.get())  # 模拟后续图节点读取 NodeServices
+        yield {'type': 'leader_question'}
+
+    events = [
+        event
+        async for event in run_claimed_agentteams_workflow_events(
+            999999,
+            'ctx-owner',
+            continuation_events(),
+            TestSessionLocal,
+        )
+    ]
+
+    assert events == [
+        {'type': 'leader_thinking'},
+        {'type': 'leader_question'},
+    ]
+    assert observed == ['initialized']
+
+
+@pytest.mark.asyncio
 async def test_answer_continuation_keeps_nonterminal_session_recoverable(db_session):
     from services.agentteams_integration_launch import launch_agentteams_consultation
 
