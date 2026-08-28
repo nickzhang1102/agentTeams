@@ -89,9 +89,13 @@ class DBWrapper:
         """创建查询对象"""
         return self.session.query(*entities, **kwargs)
 
-    def get(self, entity, ident):
-        """根据主键获取对象"""
-        return self.session.get(entity, ident)
+    def get(self, entity, ident, **kwargs):
+        """根据主键获取对象
+
+        透传 with_for_update / populate_existing 等 SQLAlchemy 2.0
+        Session.get 支持的关键字参数，保持与原生 Session 接口一致。
+        """
+        return self.session.get(entity, ident, **kwargs)
 
     def delete(self, instance):
         """删除对象"""

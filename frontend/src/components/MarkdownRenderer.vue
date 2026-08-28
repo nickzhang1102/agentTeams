@@ -422,23 +422,44 @@ const decodeTextEntities = (text) => text
   .replace(/&#39;/g, "'")
   .replace(/&amp;/g, '&')
 
-// 重写 text 渲染方法：识别 evidence ID 并标记为可点击元素
-renderer.text = function (text) {
-  // Decode already-escaped text entities first, then escape all raw text for XSS safety.
-  const safe = decodeTextEntities(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-  return safe.replace(_EV_REF_RE, (match, explicitId, legacyId) => {
-    const evidenceId = explicitId || legacyId
-    const evidence = evidenceLookup.value.get(evidenceId)
-    if (!evidence) return match
+// 证据引用替换：命中证据表渲染可点击引用；未命中退化为短标签，
+// 保证任何情况下都不回显原始长 evidence_id。
+const replaceEvidenceRefs = (safeText) => safeText.replace(_EV_REF_RE, (match, explicitId, legacyId) => {
+  const evidenceId = explicitId || legacyId
+  const evidence = evidenceLookup.value.get(evidenceId)
 
+  // 命中证据表：渲染可点击引用，点击打开证据抽屉
+  if (evidence) {
     const label = `${props.evidenceLabel}${evidence.number}`
     const title = evidence.item.title || label
     return `<button type="button" class="evidence-ref" data-evidence-id="${escapeAttribute(evidenceId)}" title="${escapeAttribute(title)}" aria-label="${escapeAttribute(label)}">${escapeAttribute(label)}</button>`
-  })
+  }
+
+  // 未命中：直接移除标记，不回显原始长 ID，也不渲染任何占位标签
+  return ''
+})
+
+const escapeTextEntities = (text) => decodeTextEntities(text)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+
+// 重写 text 渲染方法：识别 evidence ID 并标记为可点击元素
+renderer.text = function (text) {
+  // Decode already-escaped text entities first, then escape all raw text for XSS safety.
+  return replaceEvidenceRefs(escapeTextEntities(text))
+}
+
+// 重写行内代码渲染：LLM 偶尔会把引用写成 `[evidence_id:xxx]`（连反引号一起照抄），
+// 此时引用走 codespan 而非 text；同样替换为短标签，避免泄漏原始长 ID。
+// 只处理显式 [evidence_id:...] 标记，不做裸 ID 匹配，避免误伤真实代码。
+renderer.codespan = function (code) {
+  const safe = escapeTextEntities(code)
+  if (!/\[evidence_id:/i.test(safe)) {
+    return `<code>${safe}</code>`
+  }
+  return replaceEvidenceRefs(safe)
 }
 
 // 修复中文场景下 **bold** / *em* 紧贴标点导致闭合定界符不被识别的问题

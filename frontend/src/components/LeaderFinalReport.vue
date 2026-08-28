@@ -11,9 +11,9 @@
     </div>
     <ContentTranslationStatus :state="translationState" />
     <div class="report-content">
-      <section v-if="reportSummary" class="report-summary">
+      <section v-if="reportSummary" class="report-summary" @click="handleSummaryEvidenceClick">
         <div class="summary-header">
-          <h3 v-html="renderInlineMd(reportSummary.title || t('leader.report.summary'))"></h3>
+          <h3 v-html="renderSummaryMd(reportSummary.title || t('leader.report.summary'))"></h3>
           <el-button
             v-if="hasEvidence"
             size="small"
@@ -27,36 +27,41 @@
         <p
           v-if="reportSummary.executive_summary"
           class="summary-lead"
-          v-html="renderInlineMd(reportSummary.executive_summary)"
+          v-html="renderSummaryMd(reportSummary.executive_summary)"
         ></p>
         <div class="summary-grid">
           <div v-if="listHasItems(reportSummary.key_findings)" class="summary-section">
             <strong>{{ t('leader.report.keyFindings') }}</strong>
             <ul>
-              <li v-for="item in reportSummary.key_findings" :key="item" v-html="renderInlineMd(item)"></li>
+              <li v-for="item in reportSummary.key_findings" :key="item" v-html="renderSummaryMd(item)"></li>
             </ul>
           </div>
           <div v-if="listHasItems(reportSummary.recommendations)" class="summary-section">
             <strong>{{ t('leader.report.recommendations') }}</strong>
             <ul>
-              <li v-for="item in reportSummary.recommendations" :key="item" v-html="renderInlineMd(item)"></li>
+              <li v-for="item in reportSummary.recommendations" :key="item" v-html="renderSummaryMd(item)"></li>
             </ul>
           </div>
           <div v-if="listHasItems(reportSummary.risks)" class="summary-section">
             <strong>{{ t('leader.report.risks') }}</strong>
             <ul>
-              <li v-for="item in reportSummary.risks" :key="item" v-html="renderInlineMd(item)"></li>
+              <li v-for="item in reportSummary.risks" :key="item" v-html="renderSummaryMd(item)"></li>
             </ul>
           </div>
           <div v-if="listHasItems(reportSummary.next_steps)" class="summary-section">
             <strong>{{ t('leader.report.nextSteps') }}</strong>
             <ul>
-              <li v-for="item in reportSummary.next_steps" :key="item" v-html="renderInlineMd(item)"></li>
+              <li v-for="item in reportSummary.next_steps" :key="item" v-html="renderSummaryMd(item)"></li>
             </ul>
           </div>
         </div>
       </section>
-      <ReportVisualBlocks :blocks="reportVisualBlocks" @evidence-click="handleEvidenceClick" />
+      <ReportVisualBlocks
+        :blocks="reportVisualBlocks"
+        :evidence-map="reportEvidence"
+        :evidence-label="t('leader.evidence.inlineReference')"
+        @evidence-click="handleEvidenceClick"
+      />
       <el-collapse v-if="reportSummary" v-model="activeDetail" class="report-detail-collapse">
         <el-collapse-item :title="t('leader.report.fullReport')" name="full-report">
           <MarkdownRenderer
@@ -106,6 +111,12 @@ import ReportEvidenceDrawer from './ReportEvidenceDrawer.vue'
 import ReportVisualBlocks from './ReportVisualBlocks.vue'
 import ContentTranslationStatus from './ContentTranslationStatus.vue'
 import { renderInlineMd } from '@/utils/markdown'
+
+// 摘要行内渲染：携带证据表，把 [evidence_id:xxx] 收敛为 证据N 短标签
+const renderSummaryMd = (text) => renderInlineMd(text, {
+  evidenceMap: reportEvidence.value,
+  evidenceLabel: t('leader.evidence.inlineReference')
+})
 
 const props = defineProps({
   conversationId: {
@@ -218,6 +229,16 @@ function handleEvidenceClick(evidenceId) {
   evidenceDrawerVisible.value = true
 }
 
+// 摘要区 v-html 内的证据引用无事件绑定，通过事件委托转发到证据抽屉
+function handleSummaryEvidenceClick(event) {
+  const evRef = event.target.closest('.evidence-ref')
+  if (!evRef) return
+  const evidenceId = evRef.dataset?.evidenceId
+  if (evidenceId) {
+    handleEvidenceClick(evidenceId)
+  }
+}
+
 function listHasItems(value) {
   return Array.isArray(value) && value.length > 0
 }
@@ -317,6 +338,24 @@ watch(reportRef, (newRef) => {
   margin: 0 0 8px;
   font-size: 15px;
   color: var(--el-text-color-primary);
+}
+
+/* 摘要区 v-html 内的证据引用短标签（与 MarkdownRenderer 中样式对齐） */
+.report-summary :deep(.evidence-ref) {
+  display: inline;
+  padding: 0;
+  border: 0;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  border-bottom: 1px dashed var(--el-color-primary-light-3);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.9em;
+  line-height: inherit;
+}
+.report-summary :deep(.evidence-ref:hover) {
+  border-bottom-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 
 .summary-header {

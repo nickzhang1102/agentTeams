@@ -14,9 +14,10 @@
             :key="evidenceId"
             type="button"
             class="evidence-ref-chip"
+            :title="chipTooltip(evidenceId)"
             @click="emit('evidence-click', evidenceId)"
           >
-            {{ evidenceId }}
+            {{ chipLabel(evidenceId) }}
           </button>
         </div>
       </header>
@@ -84,6 +85,14 @@ const props = defineProps({
   blocks: {
     type: Array,
     default: () => []
+  },
+  evidenceMap: {
+    type: [Array, Object],
+    default: () => []
+  },
+  evidenceLabel: {
+    type: String,
+    default: 'evidence'
   }
 })
 
@@ -119,6 +128,32 @@ function listText(value) {
     return value.filter(Boolean).join(t('leader.visual.listSeparator')) || '-'
   }
   return value || '-'
+}
+
+// 证据表：evidence_id → 编号/标题，用于把长 ID 收敛为 证据N 短标签
+const evidenceLookup = computed(() => {
+  const evidence = Array.isArray(props.evidenceMap)
+    ? props.evidenceMap
+    : Object.values(props.evidenceMap || {})
+  const lookup = new Map()
+  evidence.forEach((item, index) => {
+    const id = item && typeof item === 'object' ? String(item.evidence_id || '').trim() : ''
+    if (id && !lookup.has(id)) {
+      lookup.set(id, { number: index + 1, title: item.title || '' })
+    }
+  })
+  return lookup
+})
+
+function chipLabel(evidenceId) {
+  const hit = evidenceLookup.value.get(evidenceId)
+  return hit ? `${props.evidenceLabel}${hit.number}` : props.evidenceLabel
+}
+
+function chipTooltip(evidenceId) {
+  const hit = evidenceLookup.value.get(evidenceId)
+  if (!hit) return props.evidenceLabel
+  return hit.title || `${props.evidenceLabel}${hit.number}`
 }
 
 function blockTypeLabel(type) {

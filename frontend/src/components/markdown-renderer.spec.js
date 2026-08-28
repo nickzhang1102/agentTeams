@@ -75,10 +75,10 @@ describe('MarkdownRenderer evidence refs', () => {
     expect(wrapper.emitted('evidence-click')).toEqual([['planner-agent_ev_subtask_1_web_search_1']])
   })
 
-  it('只链接当前 evidence_map 中存在的引用，并兼容历史裸 ID', async () => {
+  it('只链接当前 evidence_map 中存在的引用，未命中标记直接移除', async () => {
     const wrapper = mount(MarkdownRenderer, {
       props: {
-        content: '已知 ev_subtask_1_web_search_1，未知 [evidence_id:ev_subtask_9_web_search_9]，变量 ev_handler。',
+        content: '已知 ev_subtask_1_web_search_1，未知 [evidence_id:ev_subtask_9_web_search_9]，变量 ev_handler.',
         evidenceMap: [{ evidence_id: 'ev_subtask_1_web_search_1' }],
         evidenceLabel: 'evidence'
       }
@@ -86,11 +86,40 @@ describe('MarkdownRenderer evidence refs', () => {
 
     await nextTick()
 
-    const refs = wrapper.findAll('.evidence-ref')
-    expect(refs).toHaveLength(1)
-    expect(refs[0].text()).toBe('evidence1')
-    expect(wrapper.text()).toContain('[evidence_id:ev_subtask_9_web_search_9]')
+    // 命中引用只有一个：整段被 promote 为可点击正文（evidence-ref 被移除）
+    const linkedContent = wrapper.find('.evidence-linked-content')
+    expect(linkedContent.exists()).toBe(true)
+    expect(linkedContent.attributes('data-evidence-id')).toBe('ev_subtask_1_web_search_1')
+    // 未命中的显式标记直接移除：不回显原始 evidence_id，也不渲染占位标签
+    expect(wrapper.find('.evidence-ref-unknown').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('[evidence_id:')
+    expect(wrapper.text()).not.toContain('ev_subtask_9_web_search_9')
     expect(wrapper.text()).toContain('ev_handler')
+
+    await linkedContent.trigger('click')
+    expect(wrapper.emitted('evidence-click')).toEqual([['ev_subtask_1_web_search_1']])
+  })
+
+  it('行内代码中照抄的 [evidence_id:...] 标记同样收敛为短标签', async () => {
+    const wrapper = mount(MarkdownRenderer, {
+      props: {
+        content: '引用写成行内代码 `[evidence_id:lab_ev_subtask_1_llm_analysis_1]` 的场景。',
+        evidenceMap: [{ evidence_id: 'lab_ev_subtask_1_llm_analysis_1', title: '来源' }],
+        evidenceLabel: '证据'
+      }
+    })
+
+    await nextTick()
+
+    expect(wrapper.text()).not.toContain('evidence_id')
+    expect(wrapper.text()).not.toContain('lab_ev_subtask_1_llm_analysis_1')
+    // 段落内唯一引用被 promote 为可点击正文，引用标签移除
+    const linkedContent = wrapper.find('.evidence-linked-content')
+    expect(linkedContent.exists()).toBe(true)
+    expect(linkedContent.attributes('data-evidence-id')).toBe('lab_ev_subtask_1_llm_analysis_1')
+
+    await linkedContent.trigger('click')
+    expect(wrapper.emitted('evidence-click')).toEqual([['lab_ev_subtask_1_llm_analysis_1']])
   })
 
   it('显示已转义的大于号和小于号实体', async () => {
