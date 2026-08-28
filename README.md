@@ -211,6 +211,14 @@ npm run dev
 
 ---
 
+## 🌍 社区
+
+欢迎加入 [LINUX DO](https://linux.do) 社区 —— 在这里与作者及更多开发者交流 Agent Teams 的使用经验、反馈问题、获取项目最新动态。
+
+👉 **[https://linux.do](https://linux.do)**
+
+---
+
 ## ☕ 赞助支持
 
 如果 Agent Teams 对你有所帮助，欢迎请作者喝一杯咖啡 ☕

@@ -211,6 +211,14 @@ Contributions are welcome! Fork → create a feature branch → commit (Conventi
 
 ---
 
+## 🌍 Community
+
+Join us on the [LINUX DO](https://linux.do) forum — exchange experience with Agent Teams, share feedback, and follow the latest project updates.
+
+👉 **[https://linux.do](https://linux.do)**
+
+---
+
 ## ☕ Support the project
 
 If Agent Teams helps you, consider buying the author a coffee ☕

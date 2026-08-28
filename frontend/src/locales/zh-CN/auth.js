@@ -22,8 +22,6 @@ export default {
       submitting: '登录中...',
       noAccount: '还没有账号?',
       registerNow: '立即注册',
-      community: 'LINUX DO 社区 · 交流与反馈',
-      communityAria: '前往 LINUX DO 社区论坛',
       success: '登录成功',
       continueAnalysis: '正在继续您的分析...',
       continueEditing: '欢迎回来，请继续编辑',
