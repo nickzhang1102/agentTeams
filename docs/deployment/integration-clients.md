@@ -81,6 +81,7 @@ GET  /api/integrations/v1/{client_key}/capabilities                       # 版�
 POST /api/integrations/v1/{client_key}/consultation-launches              # 启动（幂等）
 GET  /api/integrations/v1/{client_key}/consultation-launches/{request_id} # 对账（只读）
 POST /api/integrations/v1/{client_key}/consultation-launches/{request_id}/reconcile # 对账（只读）
+POST /api/integrations/v1/{client_key}/consultation-launches/{request_id}/embed-token # 重签嵌入令牌（客户端鉴权；只铸造令牌，不创建/不调度）
 ```
 
 ### 请求头
@@ -137,8 +138,14 @@ POST /api/integrations/v1/{client_key}/consultation-launches/{request_id}/reconc
 | `idempotency_conflict` | 409 | 相同 request id 载荷不一致 |
 | `unsupported_version` | 426 | 协议版本不兼容 |
 | `invalid_embed_token` / `embed_session_not_found` | 401/404 | 嵌入访问错误 |
+| `agentteams_launch_not_found` | 404 | 重签嵌入令牌时启动记录不存在 |
+| `agentteams_launch_failed` / `agentteams_launch_stopped` | 409 | 重签嵌入令牌时启动已失败/已停止 |
 
 调用方不应猜测本表之外的错误码；对未登记码应记录原始码并按 HTTP 语义分类（4xx 配置/载荷、5xx 不可用），不得回显远端 message 到终端用户。
+
+### 历史会诊重签
+
+嵌入令牌会过期（TTL 默认 3600s，可配 `AGENTTEAMS_EMBED_TOKEN_TTL_SECONDS`，下限 60s）并被同一会话的新令牌吊销，宿主重新打开历史会诊时不能用旧令牌。宿主可通过 `POST .../consultation-launches/{request_id}/embed-token`（客户端鉴权）为既有启动**重签**一个新令牌：只铸造令牌，不新建会话、不调度也不重启工作流，无额外汇计费副作用。重签定位启动记录时与 status 查询共享相同的客户端租户隔离（其它租户或遗留密钥一律 404 `agentteams_launch_not_found`）；启动已 `failed`/`stopped` 时返回 409。
 
 表中 `invalid_client`（400）与 `integration_client_not_found`（404）指向"该部署未注册此 client_key"的部署状态类问题：调用方可按自身产品语义归类展示（例如映射为 503"集成暂不可用"），但日志中必须保留原始错误码，保证排障可追溯。
 

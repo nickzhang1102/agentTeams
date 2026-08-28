@@ -151,9 +151,9 @@ AGENTS_DIR=/app/agents
 # 日志级别
 LOG_LEVEL=info
 
-# Agent Teams iframe 来源策略
-# 同站 /agentteams 反代只需 'self'；独立域名部署必须列出 Agent Teams 前端 origin。
-AGENTTEAMS_EMBED_FRAME_ANCESTORS="'self' https://agentteams.example.com"
+# Agent Teams 嵌入页来源策略（frame-ancestors）
+# 同站 /agentteams 反代只需 'self'；独立域名部署必须列出嵌入它的 OncoPath 页面 origin。
+AGENTTEAMS_EMBED_FRAME_ANCESTORS="'self' https://oncopath.example.com"
 
 # ==================== 可选：LLM 并发上限 ====================
 # 进程级信号量，限制同一 uvicorn worker 内并行发起的 LLM API 调用数。
@@ -163,9 +163,9 @@ AGENTTEAMS_EMBED_FRAME_ANCESTORS="'self' https://agentteams.example.com"
 # LLM_MAX_CONCURRENT_CALLS=3
 ```
 
-`frame-ancestors` 必须使用浏览器访问 Agent Teams 时的 origin，不是容器内部地址。
-例如 Agent Teams 页面为 `https://agentteams.example.com`，就必须包含该完整 origin；
-漏配时浏览器会在加载 AgentTeams iframe HTML 前直接拦截页面。
+`frame-ancestors` 填写的是**嵌入方（宿主 OncoPath）页面的 origin**，不是 Agent Teams 自身地址。
+例如 OncoPath 部署在 `https://oncopath.example.com`，且通过独立域名的 Agent Teams 提供嵌入页，
+就必须包含 `https://oncopath.example.com`；漏配时浏览器会在加载 AgentTeams iframe HTML 前直接拦截页面。
 
 ### 4.2 前端 `.env`（通常不需要修改）
 

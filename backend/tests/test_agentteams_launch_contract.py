@@ -2354,3 +2354,175 @@ def test_generic_launch_response_has_neutral_envelope(client, monkeypatch):
     assert found.status_code == 200
     assert found.json()['remote_conversation_id'] == data['agentteams_conversation_id']
     assert found.json()['remote_session_id'] == data['agentteams_session_id']
+
+
+def test_reissue_embed_mints_fresh_token_without_revoking_or_restarting(client, monkeypatch):
+    monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
+    session = TestSessionLocal()
+    try:
+        _prepare_service_account(session)
+    finally:
+        session.close()
+
+    launched = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches',
+        json={'conversation_ref': 'reissue-conversation', 'message': 'reissue me'},
+        headers={'X-Integration-Key': 'test-integration-key', 'X-Request-Id': 'reissue-1'},
+    )
+    assert launched.status_code == 200
+    original = launched.json()
+    original_token = original['metadata']['embed_token']
+
+    session = TestSessionLocal()
+    try:
+        launch = session.query(AgentTeamsLaunch).filter_by(request_id='reissue-1').one()
+        conversation_id = launch.agentteams_conversation_id
+        original_conversation_count = session.query(Conversation).count()
+        token_count_before = session.query(AgentTeamsEmbedToken).filter_by(
+            conversation_id=conversation_id,
+        ).count()
+        original_row = session.query(AgentTeamsEmbedToken).filter_by(
+            token_hash=hashlib.sha256(original_token.encode()).hexdigest(),
+        ).one()
+    finally:
+        session.close()
+
+    reissued = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches/reissue-1/embed-token',
+        headers={'X-Integration-Key': 'test-integration-key'},
+    )
+    assert reissued.status_code == 200
+    data = reissued.json()
+    new_token = data['metadata']['embed_token']
+    assert new_token != original_token
+    assert data['embed_path'].startswith(f'/embed/conversation/{new_token}')
+    assert data['remote_conversation_id'] == original['remote_conversation_id']
+    assert 'conversation_ref' in data
+
+    session = TestSessionLocal()
+    try:
+        # 新 token 已入库；同一会诊应存在两张活动令牌（旧令牌未被吊销）。
+        assert session.query(AgentTeamsEmbedToken).filter_by(
+            conversation_id=conversation_id,
+        ).count() == token_count_before + 1
+        # 旧令牌仍有效（revoke_existing=False）
+        remained = session.query(AgentTeamsEmbedToken).filter_by(
+            token_hash=hashlib.sha256(original_token.encode()).hexdigest(),
+        ).one()
+        assert remained.revoked_at is None
+        # 重签绝不新建会话，也绝不把启动状态推进到非 created。
+        assert session.query(Conversation).count() == original_conversation_count
+        assert session.query(AgentTeamsLaunch).filter_by(request_id='reissue-1').one().status == 'created'
+    finally:
+        session.close()
+
+
+def test_reissue_embed_is_scoped_per_client_and_isolated(client, monkeypatch):
+    monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
+    session = TestSessionLocal()
+    try:
+        service_account = _prepare_service_account(session)
+        for client_key, supplied_key in (('tenant-a', 'tenant-a-key'), ('tenant-b', 'tenant-b-key')):
+            session.add(IntegrationClient(
+                client_key=client_key,
+                adapter_key='agentteams',
+                display_name=client_key,
+                credential_hash='sha256:' + hashlib.sha256(supplied_key.encode()).hexdigest(),
+                service_account_id=service_account.id,
+                enabled=True,
+                capabilities_json={
+                    'launch': True,
+                    'status_query': True,
+                    'reconcile': True,
+                    'reissue_embed': True,
+                },
+            ))
+        session.commit()
+    finally:
+        session.close()
+
+    launched = client.post(
+        '/api/integrations/v1/tenant-a/consultation-launches',
+        json={'conversation_ref': 'isolated-conversation', 'message': 'tenant a'},
+        headers={'X-Integration-Key': 'tenant-a-key', 'X-Request-Id': 'same-ext-request'},
+    )
+    assert launched.status_code == 200
+
+    # 其它租户重签同一个外部 id：必须 404，绝不能读到或篡改 tenant-a 的记录。
+    cross = client.post(
+        '/api/integrations/v1/tenant-b/consultation-launches/same-ext-request/embed-token',
+        headers={'X-Integration-Key': 'tenant-b-key'},
+    )
+    assert cross.status_code == 404
+    assert cross.json()['detail']['error'] == 'agentteams_launch_not_found'
+
+    # 归属租户通过外部 id 重签成功（适配器负责完成 client 命名空间前缀化）。
+    owned = client.post(
+        '/api/integrations/v1/tenant-a/consultation-launches/same-ext-request/embed-token',
+        headers={'X-Integration-Key': 'tenant-a-key'},
+    )
+    assert owned.status_code == 200
+    assert owned.json()['remote_conversation_id'] == launched.json()['remote_conversation_id']
+
+
+def test_reissue_embed_rejects_unknown_and_terminal_launches(client, monkeypatch):
+    monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
+    session = TestSessionLocal()
+    try:
+        _prepare_service_account(session)
+    finally:
+        session.close()
+
+    unknown = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches/does-not-exist/embed-token',
+        headers={'X-Integration-Key': 'test-integration-key'},
+    )
+    assert unknown.status_code == 404
+    assert unknown.json()['detail']['error'] == 'agentteams_launch_not_found'
+
+    launched = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches',
+        json={'conversation_ref': 'terminal-conversation', 'message': 'will fail'},
+        headers={'X-Integration-Key': 'test-integration-key', 'X-Request-Id': 'terminal-reissue-1'},
+    )
+    assert launched.status_code == 200
+    session = TestSessionLocal()
+    try:
+        launch = session.query(AgentTeamsLaunch).filter_by(request_id='terminal-reissue-1').one()
+        launch.status = 'failed'
+        session.commit()
+    finally:
+        session.close()
+
+    failed = client.post(
+        '/api/integrations/v1/agentteams/consultation-launches/terminal-reissue-1/embed-token',
+        headers={'X-Integration-Key': 'test-integration-key'},
+    )
+    assert failed.status_code == 409
+    assert failed.json()['detail']['error'] == 'agentteams_launch_failed'
+
+
+def test_reissue_embed_requires_capability(client, monkeypatch):
+    monkeypatch.setattr('api.agentteams_integration_api.schedule_agentteams_launch', lambda launch_id: None)
+    session = TestSessionLocal()
+    try:
+        service_account = _prepare_service_account(session)
+        session.add(IntegrationClient(
+            client_key='limited-client',
+            adapter_key='agentteams',
+            display_name='limited',
+            credential_hash='sha256:' + hashlib.sha256(b'limited-key').hexdigest(),
+            service_account_id=service_account.id,
+            enabled=True,
+            capabilities_json={'launch': True, 'status_query': True},
+        ))
+        session.commit()
+    finally:
+        session.close()
+
+    response = client.post(
+        '/api/integrations/v1/limited-client/consultation-launches/some-request/embed-token',
+        headers={'X-Integration-Key': 'limited-key'},
+    )
+    assert response.status_code == 403
+    assert response.json()['detail']['error'] == 'integration_capability_disabled'

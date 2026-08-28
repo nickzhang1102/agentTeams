@@ -280,6 +280,7 @@ class IntegrationClientService:
                     'launch': True,
                     'status_query': True,
                     'reconcile': True,
+                    'reissue_embed': True,
                 },
                 legacy_fallback=True,
             )
@@ -338,6 +339,7 @@ class IntegrationClientService:
                     'launch': True,
                     'status_query': True,
                     'reconcile': True,
+                    'reissue_embed': True,
                 },
             )
             db_session.add(client)
@@ -347,6 +349,7 @@ class IntegrationClientService:
             'launch': True,
             'status_query': True,
             'reconcile': True,
+            'reissue_embed': True,
         }
         configured_key = _get_config_value(
             db_session, 'AGENTTEAMS_INTEGRATION_KEY', ''

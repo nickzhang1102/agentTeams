@@ -84,6 +84,9 @@ INTEGRATION_ERROR_CODES = [
     'unsupported_version',
     'invalid_embed_token',
     'embed_session_not_found',
+    'agentteams_launch_not_found',
+    'agentteams_launch_failed',
+    'agentteams_launch_stopped',
 ]
 INTEGRATION_LIMITS = {
     'message_max_length': AGENTTEAMS_MESSAGE_MAX_LENGTH,
@@ -974,6 +977,72 @@ def get_agentteams_launch_by_request_id(
         'source_conversation_id': launch.source_conversation_id,
         'error_code': launch.error_code,
     }
+
+
+def reissue_agentteams_embed_token(
+    db_session: Session,
+    request_id: str,
+    integration_key: str | None,
+    integration_context: IntegrationClientContext | None = None,
+) -> dict[str, Any]:
+    """为既有启动记录重签一个嵌入令牌，供宿主重新打开历史会诊。
+
+    与 status 查询共享幂等边界与租户隔离（联动的调用方必须在路由层把
+    request-id 规范化为存储键，正如 ``get_agentteams_launch_by_request_id``
+    的适配器调用相同）。该终点只铸造令牌，不创建会话、不调度也不重启
+    工作流，因此不会带来新的计费或重复执行副作用。启动记录以行锁保护，
+    避免并发重签与管理的撤销操作交错。
+    """
+    if integration_context is None:
+        _verify_integration_key(db_session, integration_key)
+    normalized_request_id = str(request_id or '').strip()
+    if not normalized_request_id:
+        raise AgentTeamsLaunchError(400, 'invalid_payload', 'request_id is required')
+
+    owner_client_key = (
+        integration_context.client_key
+        if integration_context is not None
+        else AGENTTEAMS_SOURCE
+    )
+    launch = (
+        db_session.query(AgentTeamsLaunch)
+        .filter_by(
+            source=AGENTTEAMS_SOURCE,
+            integration_client_key=owner_client_key,
+            request_id=normalized_request_id,
+        )
+        .with_for_update()
+        .one_or_none()
+    )
+    if launch is None or launch.agentteams_conversation_id is None:
+        raise AgentTeamsLaunchError(
+            404,
+            'agentteams_launch_not_found',
+            'Agent Teams launch not found',
+        )
+
+    status = str(launch.status or 'created').strip().lower()
+    if status in {'failed', 'stopped'}:
+        raise AgentTeamsLaunchError(
+            409,
+            f'agentteams_launch_{status}',
+            f'Agent Teams launch is {status}',
+        )
+
+    embed_token = _create_embed_token(
+        db_session,
+        launch.agentteams_conversation_id,
+        launch.agentteams_leader_session_id,
+        integration_client_key=owner_client_key,
+        revoke_existing=False,
+    )
+    return _launch_response(
+        db_session,
+        launch,
+        embed_token,
+        status=launch.status or 'created',
+        start_background=False,
+    )
 
 
 def revoke_agentteams_embed_access(

@@ -184,6 +184,36 @@ def get_generic_consultation_status(
         _raise_launch_error(error)
 
 
+@generic_router.post('/{client_key}/consultation-launches/{request_id}/embed-token')
+def reissue_generic_consultation_embed_token(
+    client_key: str,
+    request_id: str,
+    response: Response,
+    x_integration_key: Optional[str] = Header(default=None, alias='X-Integration-Key'),
+    x_protocol_version: Optional[str] = Header(default=None, alias='X-Integration-Protocol-Version'),
+    db_session: Session = Depends(get_db),
+):
+    """为已有启动重签一个嵌入令牌（不创建、不调度、不重启工作流）。
+
+    供宿主在打开历史会诊时重新获取有效令牌；仅铸造令牌，不产生
+    额外的计费或执行副作用。
+    """
+    _set_embed_security_headers(response)
+    register_builtin_adapters()
+    try:
+        check_integration_protocol_version(x_protocol_version)
+        gateway = IntegrationGateway(db_session)
+        client = gateway.authenticate(client_key, x_integration_key)
+        return gateway.reissue_embed(client, request_id=_generic_request_id(request_id))
+    except IntegrationClientError as error:
+        raise HTTPException(
+            status_code=error.status_code,
+            detail={'error': error.error_code, 'message': error.message},
+        )
+    except AgentTeamsLaunchError as error:
+        _raise_launch_error(error)
+
+
 @generic_router.post('/{client_key}/consultation-launches/{request_id}/reconcile')
 def reconcile_generic_consultation(
     client_key: str,

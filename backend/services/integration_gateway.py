@@ -50,6 +50,14 @@ class IntegrationAdapter(Protocol):
         client: IntegrationClientContext,
     ) -> dict[str, Any]: ...
 
+    def reissue_embed(
+        self,
+        db_session: Session,
+        *,
+        request_id: str,
+        client: IntegrationClientContext,
+    ) -> dict[str, Any]: ...
+
     def schedule_launch(
         self,
         db_session: Session,
@@ -139,6 +147,17 @@ class IntegrationGateway:
             self.db_session, request_id=request_id, client=client
         )
 
+    def reissue_embed(self, client: IntegrationClientContext, *, request_id: str) -> dict[str, Any]:
+        if client.capabilities.get('reissue_embed') is not True:
+            raise IntegrationClientError(
+                403,
+                'integration_capability_disabled',
+                'Integration embed reissue capability is disabled',
+            )
+        return self._adapter_for(client).reissue_embed(
+            self.db_session, request_id=request_id, client=client
+        )
+
     def schedule_launch(
         self,
         client: IntegrationClientContext,
@@ -207,6 +226,17 @@ def register_builtin_adapters() -> None:
             # 协调刻意保持只读；任何随后的状态转换由持久化工作线程负责，
             # 而非此端点。
             return self.get_status(db_session, request_id=request_id, client=client)
+
+        def reissue_embed(self, db_session, *, request_id, client):
+            from services.agentteams_integration_launch import reissue_agentteams_embed_token
+            result = reissue_agentteams_embed_token(
+                db_session=db_session,
+                request_id=self._storage_request_id(request_id, client),
+                integration_key=None,
+                integration_context=client,
+            )
+            result['status'] = self._normalize_status(result.get('status'))
+            return result
 
         def schedule_launch(self, db_session, *, result, request_id, client):
             if not result.pop('_start_background', False):
