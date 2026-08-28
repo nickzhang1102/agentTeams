@@ -731,8 +731,11 @@ def load_qa_history(
         for a in (msg.content or {}).get('answers', []):
             if isinstance(a, dict):
                 qa_pairs.append({
-                    'question': a.get('question', ''),
-                    'answer': a.get('answer', ''),
+                    # `or ''` 防御历史数据中 question/answer 为 None 的情况：
+                    # .get(key, '') 在键存在但值为 None 时返回 None，
+                    # 下游 summarize 等处的 .strip() 会直接 AttributeError。
+                    'question': str(a.get('question') or ''),
+                    'answer': str(a.get('answer') or ''),
                 })
 
     return qa_pairs

@@ -301,8 +301,10 @@ def requirement_loop_node(state: LeaderWorkflowState) -> Dict:
         unanswered_questions = all_asked_questions[answered_count:]
         pairs = []
         for i, answer in enumerate(user_answers):
-            question_text = unanswered_questions[i].get('question', '') if i < len(unanswered_questions) else ''
-            pairs.append({"question": question_text, "answer": answer})
+            # `or ''`：unanswered_questions 里 question 键存在但值为 None 时
+            # .get(key, '') 会返回 None，下游 summarize 的 .strip() 会崩溃
+            question_text = (unanswered_questions[i].get('question') or '') if i < len(unanswered_questions) else ''
+            pairs.append({"question": str(question_text), "answer": str(answer)})
         if pairs:
             result["qa_history"] = qa_history + pairs
             logger.info(f"requirement_loop_node: accumulated {len(pairs)} qa pairs, "

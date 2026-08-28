@@ -1,3 +1,4 @@
+import time
 from unittest.mock import MagicMock, patch
 
 from services.tools_registry import WebSearchHandler
@@ -7,6 +8,12 @@ def _response(payload):
     response = MagicMock()
     response.status_code = 200
     response.json.return_value = payload
+    return response
+
+
+def _status_response(status_code):
+    response = MagicMock()
+    response.status_code = status_code
     return response
 
 
@@ -55,3 +62,84 @@ def test_tavily_marks_provider_content_as_snippet_and_excludes_ai_answer():
     assert len(result["evidence_items"]) == 1
     assert result["evidence_items"][0]["source_id"] == "https://example.com/source"
     assert result["evidence_items"][0]["completeness"] == "snippet"
+
+
+# ==================== 额度错误识别与粘性退避 ====================
+
+
+def test_exa_402_reports_credit_exhausted_with_clear_message():
+    handler = WebSearchHandler(exa_api_key="test-key")
+    with patch("requests.post", return_value=_status_response(402)):
+        result = handler._search_exa("query")
+
+    assert result["success"] is False
+    assert "402" in result["error"]
+    assert "credits exhausted" in result["error"]
+
+
+def test_tavily_432_reports_usage_limit_with_clear_message():
+    handler = WebSearchHandler(tavily_api_key="test-key")
+    with patch("requests.post", return_value=_status_response(432)):
+        result = handler._search_tavily("query")
+
+    assert result["success"] is False
+    assert "432" in result["error"]
+    assert "usage limit" in result["error"]
+
+
+def test_exa_402_marks_backoff_and_next_call_skips_exa_directly_to_tavily():
+    handler = WebSearchHandler(exa_api_key="test-key", tavily_api_key="tavily-key")
+    urls = []
+
+    def _post(url, **kwargs):
+        urls.append(url)
+        if "exa" in url:
+            return _status_response(402)
+        return _response({"results": []})
+
+    with patch("requests.post", side_effect=_post):
+        first = handler.execute("query")
+        assert first["success"] is True  # Tavily 接棒成功
+        assert handler._exa_quota_backoff_active() is True
+
+        second = handler.execute("query")
+
+    assert urls[0].startswith("https://api.exa.ai")
+    assert urls[1].startswith("https://api.tavily.com")
+    assert second["success"] is True
+    # 第二次调用：退避生效，不再请求 Exa，直接走 Tavily
+    assert len(urls) == 3
+    assert urls[2].startswith("https://api.tavily.com")
+
+
+def test_exa_backoff_cleared_by_key_change_or_ttl_expiry():
+    handler = WebSearchHandler(exa_api_key="test-key")
+    assert handler._exa_quota_backoff_active() is False
+
+    handler._mark_exa_quota_backoff()
+    assert handler._exa_quota_backoff_active() is True
+
+    # key 更换立即解除退避（管理员换了新 key）
+    handler.exa_api_key = "new-key"
+    assert handler._exa_quota_backoff_active() is False
+
+    # TTL 过期后恢复尝试 Exa（月度额度刷新场景）
+    handler._mark_exa_quota_backoff()
+    handler._exa_backoff_until = time.monotonic() - 1
+    assert handler._exa_quota_backoff_active() is False
+
+
+def test_api_keys_are_trimmed_on_load():
+    handler = WebSearchHandler(exa_api_key="  exa-key \n", tavily_api_key="\t tavily-key ")
+    handler._load_database_credentials()
+    assert handler.exa_api_key == "exa-key"
+    assert handler.tavily_api_key == "tavily-key"
+
+
+def test_exa_backoff_without_tavily_reports_missing_fallback():
+    handler = WebSearchHandler(exa_api_key="test-key")
+    with patch("requests.post", return_value=_status_response(402)):
+        result = handler.execute("query")
+
+    assert result["success"] is False
+    assert "no Tavily API key" in result["error"]

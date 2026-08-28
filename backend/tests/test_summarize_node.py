@@ -740,6 +740,26 @@ class TestBuildSummaryPrompt:
         assert "Target approximately 750 effective words" in prompt
         assert "正文目标有效字符数" not in prompt
 
+    def test_prompt_tolerates_malformed_qa_history(self):
+        """qa_history 中的 None 字段 / 非 dict 条目不应让汇总 prompt 构建崩溃。"""
+        other_results = [{"agent_id": "a1", "agent_name": "专家1", "content": "内容1"}]
+        qa_history = [
+            {"question": None, "answer": "只回答了内容"},   # 键存在但值为 None
+            {"answer": None},                              # question 缺失 + answer 为 None
+            "纯字符串答案",                                 # 非 dict 条目
+            {"question": "正常问题", "answer": "正常回答"},
+        ]
+
+        prompt = _build_summary_prompt(
+            other_results, None, False, qa_history=qa_history
+        )
+
+        assert "用户补充说明" in prompt
+        assert "只回答了内容" in prompt
+        assert "纯字符串答案" in prompt
+        assert "正常问题" in prompt
+        assert "正常回答" in prompt
+
     def test_prompt_uses_direct_agent_summary_with_report(self):
         """有 result.summary 时，最终汇总 prompt 使用摘要与 Agent 报告正文。"""
         other_results = [

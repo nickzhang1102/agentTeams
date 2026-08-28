@@ -585,8 +585,12 @@ def _build_summary_prompt(
     if qa_history:
         qa_text = ""
         for i, qa in enumerate(qa_history, 1):
-            q = qa.get("question", "").strip()
-            a = qa.get("answer", "").strip()
+            if not isinstance(qa, dict):
+                # 历史状态里可能混入非 dict 条目（如纯字符串答案），跳过避免崩溃
+                qa_text += f"\n**追问 {i}**：\n**用户回答**：{str(qa).strip()}\n"
+                continue
+            q = str(qa.get("question") or "").strip()
+            a = str(qa.get("answer") or "").strip()
             if q or a:
                 qa_text += f"\n**追问 {i}**：{q}\n**用户回答**：{a}\n"
         if qa_text:

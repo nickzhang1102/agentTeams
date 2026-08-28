@@ -139,6 +139,16 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
     },
+
+    // 嵌入会诊页渲染回归：快照式一次性挂载下 mermaid 图表必须完成渲染，
+    // 跨 Agent 的 scoped 证据引用必须转成可点击引用而非明文。
+    {
+      name: 'embed-consultation-render',
+      testMatch: /tests\/embed-consultation-render\.spec\.js/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
     {
       name: 'evidence-drawer-mobile',
       testMatch: /tests\/report-evidence-drawer\.spec\.js/,

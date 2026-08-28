@@ -127,7 +127,6 @@ const emit = defineEmits(['evidence-click'])
 
 const containerRef = ref(null)
 const fullscreenBodyRef = ref(null)
-const mermaidIdCounter = ref(0)
 
 // 全屏查看状态
 const fullscreenMermaid = reactive({
@@ -163,9 +162,51 @@ mermaid.initialize({
 })
 
 // 生成唯一 ID
+// 计数器必须放在模块作用域：嵌入页快照会让同一文档中的多个
+// MarkdownRenderer 实例在同一毫秒内生成图表 ID，实例内计数器
+// 会让不同实例产出完全相同的 id（mermaid-{ts}-0），并发调用
+// mermaid.render 时内部临时节点互相覆盖。模块级计数器保证全局唯一。
+let mermaidGlobalCounter = 0
 const generateMermaidId = () => {
-  return `mermaid-${Date.now()}-${mermaidIdCounter.value++}`
+  return `mermaid-${Date.now()}-${mermaidGlobalCounter++}`
 }
+
+// mermaid.render 的 Promise 在个别异常场景（图表过大、渲染内部等待
+// 外部资源等）可能长时间不落定，表现为“正在渲染图表...”永久转圈。
+// 这里加超时兜底：超时后按渲染失败处理，展示源码便于定位。
+const MERMAID_RENDER_TIMEOUT_MS = 20000
+
+const renderMermaidWithTimeout = (id, processedCode) => new Promise((resolve, reject) => {
+  let settled = false
+  const timer = setTimeout(() => {
+    if (settled) return
+    settled = true
+    reject(new Error(`mermaid 渲染超时（${Math.round(MERMAID_RENDER_TIMEOUT_MS / 1000)}s 未完成）`))
+  }, MERMAID_RENDER_TIMEOUT_MS)
+  mermaid.render(id, processedCode).then(
+    (result) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(result)
+    },
+    (error) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      reject(error)
+    }
+  )
+})
+
+const buildMermaidErrorHtml = (code, errorMsg) => `
+  <div class="mermaid-error">
+    <div class="mermaid-error-title">⚠️ 图表渲染失败</div>
+    <div class="mermaid-error-message">图表语法可能包含不支持的格式，请检查以下代码：</div>
+    <pre class="mermaid-error-code"><code>${escapeHtml(code)}</code></pre>
+    <div class="mermaid-error-detail" style="font-size: 12px; color: #909399; margin-top: 8px;">错误详情：${escapeHtml(errorMsg)}</div>
+  </div>
+`
 
 // HTML 转义函数
 const escapeHtml = (text) => {
@@ -605,28 +646,33 @@ const renderMermaidCharts = async () => {
     if (!mermaidData) {
       continue
     }
+
+    // 防重入：同一容器已在渲染或已完成时跳过，避免对同一个图表 id
+    // 并发调用 mermaid.render（临时节点互相覆盖会导致渲染永不落定）。
+    if (container.dataset.mermaidState) {
+      continue
+    }
+    container.dataset.mermaidState = 'rendering'
     
     // 预处理 Mermaid 代码
     const processedCode = preprocessMermaidCode(mermaidData.code)
     
     try {
-      const { svg } = await mermaid.render(id, processedCode)
+      const { svg } = await renderMermaidWithTimeout(id, processedCode)
       container.innerHTML = svg
+      container.dataset.mermaidState = 'done'
       // 保存 SVG 用于全屏查看
       mermaidSvgs.value[id] = svg
       // 清理可能产生的错误元素
       cleanupMermaidErrors()
     } catch (error) {
+      container.dataset.mermaidState = 'error'
       // 渲染失败时，显示友好的错误提示
       const errorMsg = error?.message || '未知错误'
-      container.innerHTML = `
-        <div class="mermaid-error">
-          <div class="mermaid-error-title">⚠️ 图表渲染失败</div>
-          <div class="mermaid-error-message">图表语法可能包含不支持的格式，请检查以下代码：</div>
-          <pre class="mermaid-error-code"><code>${escapeHtml(mermaidData.code)}</code></pre>
-          <div class="mermaid-error-detail" style="font-size: 12px; color: #909399; margin-top: 8px;">错误详情：${escapeHtml(errorMsg)}</div>
-        </div>
-      `
+      if (errorMsg.includes('超时')) {
+        console.warn(`[mermaid] render timed out: id=${id} type=${String(mermaidData.code).split('\n')[0].slice(0, 40)}`)
+      }
+      container.innerHTML = buildMermaidErrorHtml(mermaidData.code, errorMsg)
       // 清理 Mermaid 自动生成的错误元素
       cleanupMermaidErrors()
     }
@@ -762,29 +808,33 @@ const renderPendingMermaidCharts = async () => {
     if (!mermaidData) {
       continue
     }
+
+    // 防重入：同 renderMermaidCharts，避免同 id 并发渲染导致永不落定。
+    if (container.dataset.mermaidState) {
+      continue
+    }
+    container.dataset.mermaidState = 'rendering'
     
     // 预处理 Mermaid 代码
     const processedCode = preprocessMermaidCode(mermaidData.code)
     
     try {
-      const { svg } = await mermaid.render(id, processedCode)
+      const { svg } = await renderMermaidWithTimeout(id, processedCode)
       container.innerHTML = svg
+      container.dataset.mermaidState = 'done'
       container.classList.remove('mermaid-pending')
       // 保存 SVG 用于全屏查看
       mermaidSvgs.value[id] = svg
       // 清理可能产生的错误元素
       cleanupMermaidErrors()
     } catch (error) {
+      container.dataset.mermaidState = 'error'
       // 渲染失败时，显示友好的错误提示
       const errorMsg = error?.message || '未知错误'
-      container.innerHTML = `
-        <div class="mermaid-error">
-          <div class="mermaid-error-title">⚠️ 图表渲染失败</div>
-          <div class="mermaid-error-message">图表语法可能包含不支持的格式，请检查以下代码：</div>
-          <pre class="mermaid-error-code"><code>${escapeHtml(mermaidData.code)}</code></pre>
-          <div class="mermaid-error-detail" style="font-size: 12px; color: #909399; margin-top: 8px;">错误详情：${escapeHtml(errorMsg)}</div>
-        </div>
-      `
+      if (errorMsg.includes('超时')) {
+        console.warn(`[mermaid] render timed out: id=${id} type=${String(mermaidData.code).split('\n')[0].slice(0, 40)}`)
+      }
+      container.innerHTML = buildMermaidErrorHtml(mermaidData.code, errorMsg)
       container.classList.remove('mermaid-pending')
       // 清理 Mermaid 自动生成的错误元素
       cleanupMermaidErrors()

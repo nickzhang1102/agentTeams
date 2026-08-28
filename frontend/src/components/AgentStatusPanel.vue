@@ -191,7 +191,7 @@
                 <MarkdownRenderer
                   class="content-body"
                   :content="agent.content"
-                  :evidence-map="getAgentEvidence(agent)"
+                  :evidence-map="mergedEvidence"
                   :evidence-label="t('leader.evidence.inlineReference')"
                   @evidence-click="(evidenceId) => handleAgentEvidenceClick(agent, evidenceId)"
                 />
@@ -290,7 +290,9 @@ function openAgentEvidence(agent) {
 }
 
 function handleAgentEvidenceClick(agent, evidenceId) {
-  activeEvidenceMap.value = getAgentEvidence(agent)
+  // 报告正文可能引用其他 Agent 的证据（批次上下文中的 scoped evidence_id），
+  // 因此点击引用时用全会话合并证据表定位，保证跨 Agent 引用也能打开抽屉。
+  activeEvidenceMap.value = mergedEvidence.value.length ? mergedEvidence.value : getAgentEvidence(agent)
   activeEvidenceSessionId.value = agent.leader_session_id || leaderStore.currentSession?.id || ''
   activeEvidenceAgentName.value = agent.agent_name
   highlightEvidenceId.value = evidenceId
@@ -369,6 +371,24 @@ const allAgents = computed(() => {
       translationState: entry?.state || 'original',
     }
   }).sort(compareAgentsByExecution)
+})
+
+// 全会话合并证据表：每个 Agent 的 evidence_map 在批次上下文中带 agent 前缀
+// （如 laboratory-expert_ev_subtask_2_llm_analysis_1），跨 Agent 全局唯一，
+// 因此报告正文对其他 Agent 证据的引用也能在合并表中命中并转为可点击引用。
+const mergedEvidence = computed(() => {
+  const seen = new Set()
+  const merged = []
+  for (const agent of allAgents.value) {
+    for (const item of getAgentEvidence(agent)) {
+      const id = item?.evidence_id
+      if (!id) continue
+      if (seen.has(id)) continue
+      seen.add(id)
+      merged.push(item)
+    }
+  }
+  return merged
 })
 
 const executionStages = computed(() => {

@@ -445,7 +445,7 @@ describe('Leader review scroll-to-top integration', () => {
     expect(wrapper.html()).not.toContain('规划结论')
     expect(wrapper.text()).toContain('证据 1')
   })
-  it('AgentStatusPanel 点击当前 Agent 的证据引用时应切换到当前证据上下文', async () => {
+  it('AgentStatusPanel 点击证据引用（含跨 Agent 引用）时应打开全会话合并证据上下文', async () => {
     mocks.leaderStore.selectedAgents = [
       { agent_id: 'planner', agent_name: '规划专家' },
       { agent_id: 'reviewer', agent_name: '评审专家' }
@@ -503,7 +503,10 @@ describe('Leader review scroll-to-top integration', () => {
     await nextTick()
 
     const drawer = wrapper.findComponent({ name: 'ReportEvidenceDrawer' })
+    // 报告正文可能引用其他 Agent 的证据（批次上下文中的 scoped evidence_id），
+    // 点击引用时抽屉应拿到全会话合并证据表，保证跨 Agent 引用可定位。
     expect(drawer.props('evidenceMap')).toEqual([
+      { evidence_id: 'planner_ev_subtask_1_web_search_1', title: '规划证据' },
       { evidence_id: 'reviewer_ev_subtask_1_web_search_1', title: '评审证据' }
     ])
     expect(drawer.props('highlightId')).toBe('reviewer_ev_subtask_1_web_search_1')

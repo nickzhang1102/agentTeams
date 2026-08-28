@@ -5,6 +5,7 @@
 import os
 import json
 import logging
+import time
 from typing import Dict, List, Any, Optional, Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
@@ -180,23 +181,32 @@ class ListFilesHandler(ToolHandler):
 
 
 class WebSearchHandler(ToolHandler):
-    """Web 搜索工具（支持 Exa、Tavily 和 DuckDuckGo）"""
+    """Web 搜索工具（优先级 Exa > Tavily；Exa 额度类失败后粘性退避直接走 Tavily）"""
 
     EVIDENCE_EXCERPT_CHAR_LIMIT = 500
     EVIDENCE_PASSAGE_CHAR_LIMIT = 4000
-    
+    # Exa 额度类失败（402/429）后的粘性退避时长（秒）：
+    # 退避期内每次搜索直接使用 Tavily，避免先白打一发注定失败的 Exa 请求。
+    # key 更换立即解除退避（管理员换新 key 场景）；TTL 过期后恢复尝试 Exa
+    #（覆盖月度额度刷新场景，最多晚 1 小时恢复）。
+    EXA_QUOTA_BACKOFF_SECONDS = 3600
+
     def __init__(self, exa_api_key: Optional[str] = None, tavily_api_key: Optional[str] = None):
         # Explicit values are a test seam; production reads the database per call.
         self._explicit_exa_api_key = exa_api_key
         self._explicit_tavily_api_key = tavily_api_key
-        self.exa_api_key = exa_api_key or ""
-        self.tavily_api_key = tavily_api_key or ""
-        self._fallback_mode = None  # 'tavily', 'duckduckgo' 或 None
+        self.exa_api_key = (exa_api_key or "").strip()
+        self.tavily_api_key = (tavily_api_key or "").strip()
+        self._fallback_mode = None  # 'tavily' 或 None
+        # 粘性退避状态：记录额度类失败发生时的 key 与到期时间，
+        # key 更换后自动失效，避免对已更换的新 key 误判为额度耗尽。
+        self._exa_backoff_until = 0.0
+        self._exa_backoff_key = ""
 
     def _load_database_credentials(self) -> None:
         if self._explicit_exa_api_key is not None or self._explicit_tavily_api_key is not None:
-            self.exa_api_key = self._explicit_exa_api_key or ""
-            self.tavily_api_key = self._explicit_tavily_api_key or ""
+            self.exa_api_key = (self._explicit_exa_api_key or "").strip()
+            self.tavily_api_key = (self._explicit_tavily_api_key or "").strip()
             return
         from db import db
         from models import SystemConfig
@@ -205,8 +215,9 @@ class WebSearchHandler(ToolHandler):
             SystemConfig.key.in_(("EXA_API_KEY", "TAVILY_API_KEY"))
         ).all()
         values = {row.key: row.value for row in rows}
-        self.exa_api_key = values.get("EXA_API_KEY", "")
-        self.tavily_api_key = values.get("TAVILY_API_KEY", "")
+        # strip：防御后台保存的 key 带首尾空格/换行（服务端会因此 401）
+        self.exa_api_key = (values.get("EXA_API_KEY") or "").strip()
+        self.tavily_api_key = (values.get("TAVILY_API_KEY") or "").strip()
     
     def _sanitize_text(self, text: str, limit: int = EVIDENCE_EXCERPT_CHAR_LIMIT) -> str:
         """清理文本中的特殊字符，确保 JSON 安全"""
@@ -222,7 +233,8 @@ class WebSearchHandler(ToolHandler):
     def execute(self, query: str, **kwargs) -> Dict[str, Any]:
         """
         执行 Web 搜索
-        优先级：Exa > Tavily（移除 DuckDuckGo）
+        优先级：Exa > Tavily（移除 DuckDuckGo）。
+        Exa 额度类失败（402/429）后进入粘性退避，退避期内直接使用 Tavily。
 
         Returns:
             Dict with:
@@ -234,10 +246,12 @@ class WebSearchHandler(ToolHandler):
         self._fallback_mode = None
 
         # 1. 尝试 Exa 搜索（AI 原生搜索，质量最高）
-        if self.exa_api_key and self._fallback_mode is None:
+        if self.exa_api_key and not self._exa_quota_backoff_active():
             result = self._search_exa(query)
             if result.get("success"):
                 return result
+            if self._is_exa_quota_error(result):
+                self._mark_exa_quota_backoff()
             # Exa 失败，降级到 Tavily
             logger.warning("Exa search failed, falling back to Tavily")
             self._fallback_mode = 'tavily'
@@ -249,16 +263,48 @@ class WebSearchHandler(ToolHandler):
                 return result
             # Tavily 也失败，返回错误（移除 DuckDuckGo 降级）
             logger.error("Tavily search failed, no more fallback options")
+            if self.exa_api_key:
+                return {
+                    "success": False,
+                    "error": "All search providers failed (Exa, Tavily)"
+                }
             return {
                 "success": False,
-                "error": "All search providers failed (Exa, Tavily)"
+                "error": "Tavily search failed and no Exa API key configured as fallback"
             }
 
-        # 3. 没有可用的 API Key
+        # 3. 无可用搜索渠道：区分"完全没配 key"与"Exa 不可用且未配置 Tavily"
+        if self.exa_api_key:
+            return {
+                "success": False,
+                "error": "Search unavailable: Exa failed or in quota backoff, and no Tavily API key configured"
+            }
         return {
             "success": False,
             "error": "No search API keys configured in admin settings (Exa or Tavily required)"
         }
+
+    @staticmethod
+    def _is_exa_quota_error(result: Dict[str, Any]) -> bool:
+        """识别 Exa 额度类失败：402（余额/免费额度耗尽）、429（限流/配额）。"""
+        error = str(result.get("error", ""))
+        return "402" in error or "429" in error or "quota" in error.lower()
+
+    def _exa_quota_backoff_active(self) -> bool:
+        """Exa 粘性退避是否生效（TTL 内且 key 未更换）。"""
+        if self._exa_backoff_until <= 0.0:
+            return False
+        if time.monotonic() >= self._exa_backoff_until:
+            return False
+        return self.exa_api_key == self._exa_backoff_key
+
+    def _mark_exa_quota_backoff(self) -> None:
+        self._exa_backoff_until = time.monotonic() + self.EXA_QUOTA_BACKOFF_SECONDS
+        self._exa_backoff_key = self.exa_api_key
+        logger.warning(
+            "Exa quota/credit exhausted; skipping Exa for %ss, calls will go straight to Tavily",
+            self.EXA_QUOTA_BACKOFF_SECONDS,
+        )
     
     def _search_exa(self, query: str) -> Dict[str, Any]:
         """使用 Exa API 搜索（AI 原生搜索）"""
@@ -346,10 +392,16 @@ class WebSearchHandler(ToolHandler):
                     "evidence_items": evidence_items,
                 }
             elif response.status_code == 429:
-                # 配额用尽
+                # 配额用尽（限流/月度配额）
                 return {
                     "success": False,
                     "error": "Exa API quota exceeded"
+                }
+            elif response.status_code == 402:
+                # 余额/免费额度耗尽（区别于 429 限流）：需充值或等待月度刷新
+                return {
+                    "success": False,
+                    "error": "Exa API credits exhausted (402 Payment Required) - top up at exa.ai or wait for monthly reset"
                 }
             else:
                 return {
@@ -459,6 +511,12 @@ class WebSearchHandler(ToolHandler):
                 return {
                     "success": False,
                     "error": "Tavily API quota exceeded"
+                }
+            elif response.status_code == 432:
+                # Tavily 自定义状态码：月度用量超限（key 有效但免费额度用完）
+                return {
+                    "success": False,
+                    "error": "Tavily usage limit exceeded (432, monthly quota used up)"
                 }
             else:
                 return {
