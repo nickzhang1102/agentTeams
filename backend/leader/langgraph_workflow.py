@@ -12,6 +12,7 @@ from .workflow_state import LeaderWorkflowState
 from .workflow_nodes import (
     requirement_loop_node,
     route_after_requirement,
+    route_after_human_input,
     human_input_node,
     team_form_dag_node,
     agent_execution_node,
@@ -70,8 +71,16 @@ def create_leader_workflow_graph():
         }
     )
 
-    # human_input → END（等待用户回答，由 continue_leader_workflow 恢复）
-    graph.add_edge("human_input", END)
+    # human_input：正常提问 → END 等待用户回答（由 continue_leader_workflow 恢复）；
+    # 问题无效的降级路径 → 直接进入团队组建（详见 route_after_human_input）
+    graph.add_conditional_edges(
+        "human_input",
+        route_after_human_input,
+        {
+            "team_form": "team_form_dag",
+            "end": END
+        }
+    )
 
     # team_form_dag → agent_execution；停止时直接结束
     graph.add_conditional_edges(

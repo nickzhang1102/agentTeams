@@ -210,10 +210,9 @@ def test_owner_get_rejects_stale_and_failed_falls_back_to_current_source(monkeyp
 
 
 def test_translation_route_and_rate_limit_error_are_registered():
-    assert any(
-        getattr(route, 'path', '') == '/api/content-translations/resolve'
-        for route in app.routes
-    )
+    from tests.conftest import iter_app_route_paths
+
+    assert '/api/content-translations/resolve' in set(iter_app_route_paths(app))
     response = _rate_limit_exceeded_handler(
         MagicMock(),
         SimpleNamespace(detail='RATE_LIMITED'),

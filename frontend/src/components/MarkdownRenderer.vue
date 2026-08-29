@@ -135,11 +135,10 @@ const fullscreenMermaid = reactive({
   zoom: 1
 })
 
-// XSS 安全过滤：全屏 SVG 内容净化
-const sanitizedFullscreenSvg = computed(() => {
-  const svg = fullscreenMermaid.svg
-  if (!svg) return ''
-
+// XSS 安全过滤：Mermaid SVG 内容净化（内联渲染与全屏查看共用同一配置）
+// mermaid securityLevel:'loose' 不会转义节点标签中的 HTML，LLM 生成的图表文本
+// 可能携带活动内容；innerHTML 注入前必须走同一净化管道。
+const sanitizeMermaidSvg = (svg) => {
   // 对 SVG 内容进行净化，过滤危险元素
   return DOMPurify.sanitize(svg, {
     ADD_TAGS: ['svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polygon', 'polyline', 'text', 'tspan', 'foreignObject', 'desc', 'title'],
@@ -147,6 +146,13 @@ const sanitizedFullscreenSvg = computed(() => {
     FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
     FORBID_ATTR: ['onload', 'onerror', 'onclick', 'onmouseover', 'onmouseout', 'onkeydown', 'onkeyup', 'onfocus', 'onblur', 'srcdoc', 'formaction']
   })
+}
+
+// XSS 安全过滤：全屏 SVG 内容净化
+const sanitizedFullscreenSvg = computed(() => {
+  const svg = fullscreenMermaid.svg
+  if (!svg) return ''
+  return sanitizeMermaidSvg(svg)
 })
 
 // 初始化 mermaid
@@ -217,53 +223,22 @@ const escapeHtml = (text) => {
 
 
 // 清理 Mermaid 自动生成的错误元素
+// 注意：只允许清理「Mermaid 自身附加到 body 的残留错误元素」；
+// 禁止按文本内容全文档删元素——报告正文引用 mermaid 报错原文、
+// 或其他组件的错误提示都会被误删（mermaid init 已开启
+// suppressErrorRendering，正常情况下不会再生成这类元素）。
 const cleanupMermaidErrors = () => {
-  // 清理页面底部和 body 下所有包含 Mermaid 错误信息的元素
-  // Mermaid 11.x 版本会在 body 末尾生成错误提示 div
-  
-  // 方法1: 通过文本内容匹配清理
-  const allElements = document.querySelectorAll('div, pre, span')
-  allElements.forEach(el => {
-    const text = el.textContent || ''
-    // 匹配 Mermaid 错误特征文本
-    if (text.includes('Syntax error in text') && text.includes('mermaid version')) {
-      // 确保不是我们自己的错误提示容器
-      if (!el.closest('.mermaid-container') && !el.closest('.mermaid-wrapper')) {
-        el.remove()
-      }
-    }
-  })
-  
-  // 方法2: 清理特定选择器的错误元素
-  const errorSelectors = [
-    '.mermaid-error:not(.mermaid-container .mermaid-error)',  // 非容器内的错误
-    '[class*="mermaid"] > .error:not(.mermaid-container *)',
-    '.d2h-wrapper',
-    'pre[id^="d2h-"]',
-    'div[class*="error"]:not(.mermaid-container *)'
-  ]
-  
-  errorSelectors.forEach(selector => {
-    try {
-      document.querySelectorAll(selector).forEach(el => {
-        if (el.textContent?.includes('Syntax error')) {
-          el.remove()
-        }
-      })
-    } catch (e) {
-      // 忽略选择器错误
-    }
-  })
-  
-  // 方法3: 清理 body 直接子元素中的错误提示
+  // 清理 body 直接子元素中的 mermaid 残留错误提示；
+  // 显式跳过任何渲染器内容，避免误删正文/其他组件
   document.body.querySelectorAll(':scope > div').forEach(el => {
+    if (el.closest('.markdown-renderer')) return
     const text = el.textContent || ''
     if (text.includes('Syntax error in text') && text.includes('mermaid version')) {
       el.remove()
     }
   })
-  
-  // 方法4: 清理容器内的残留错误（保留我们自定义的错误提示）
+
+  // 清理容器内的残留错误（保留我们自定义的错误提示）
   if (containerRef.value) {
     containerRef.value.querySelectorAll('.mermaid-container').forEach(container => {
       // 只移除 Mermaid 自动生成的错误元素，保留我们的 .mermaid-error
@@ -680,7 +655,7 @@ const renderMermaidCharts = async () => {
     
     try {
       const { svg } = await renderMermaidWithTimeout(id, processedCode)
-      container.innerHTML = svg
+      container.innerHTML = sanitizeMermaidSvg(svg)
       container.dataset.mermaidState = 'done'
       // 保存 SVG 用于全屏查看
       mermaidSvgs.value[id] = svg
@@ -841,7 +816,7 @@ const renderPendingMermaidCharts = async () => {
     
     try {
       const { svg } = await renderMermaidWithTimeout(id, processedCode)
-      container.innerHTML = svg
+      container.innerHTML = sanitizeMermaidSvg(svg)
       container.dataset.mermaidState = 'done'
       container.classList.remove('mermaid-pending')
       // 保存 SVG 用于全屏查看

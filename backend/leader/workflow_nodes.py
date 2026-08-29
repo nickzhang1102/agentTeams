@@ -39,6 +39,7 @@ from .leader_persistence import (  # noqa: F401
 from .requirement_nodes import (  # noqa: F401
     requirement_loop_node,
     route_after_requirement,
+    route_after_human_input,
     human_input_node,
     _simple_assessment_fallback,
     SCENE_NAMES,

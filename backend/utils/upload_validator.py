@@ -96,7 +96,8 @@ def validate_upload(
     file_content: bytes,        # 文件二进制内容
     filename: str,              # 原始文件名
     check_duplicate: bool = True,  # 是否检查重复
-    db_session = None           # 用于查询已存在文档
+    db_session = None,          # 用于查询已存在文档
+    user_id: Optional[int] = None  # 查重范围限定为该用户（知识库按用户隔离）
 ) -> ValidationResult:
     """
     完整校验流程：
@@ -112,6 +113,7 @@ def validate_upload(
         filename: 原始文件名
         check_duplicate: 是否检查重复文件
         db_session: SQLAlchemy session，用于查询已存在文档
+        user_id: 传入时查重仅匹配该用户的文档，避免向其他用户的存在性预言机泄露
 
     Returns:
         ValidationResult: 校验结果
@@ -181,7 +183,7 @@ def validate_upload(
 
     # 6. 重复检测（可选）
     if check_duplicate and db_session:
-        duplicate_doc_id = check_duplicate_by_hash(content_hash, db_session)
+        duplicate_doc_id = check_duplicate_by_hash(content_hash, db_session, user_id=user_id)
         if duplicate_doc_id:
             return ValidationResult(
                 valid=False,
@@ -251,22 +253,28 @@ def _validate_mime_type(file_content: bytes, expected_ext: str) -> tuple[bool, O
         return True, None
 
 
-def check_duplicate_by_hash(content_hash: str, db_session) -> Optional[int]:
+def check_duplicate_by_hash(content_hash: str, db_session, user_id: Optional[int] = None) -> Optional[int]:
     """
     检查是否有相同哈希的已存在文档
 
     Args:
         content_hash: MD5 哈希
         db_session: SQLAlchemy session
+        user_id: 传入时仅匹配该用户上传的文档（知识库按用户隔离，
+                 跨用户命中不应作为 409 泄露其他用户文档的存在与 ID）
 
     Returns:
         Optional[int]: 已存在文档 ID，无重复返回 None
     """
     from models import KnowledgeDocument
 
-    existing_doc = db_session.query(KnowledgeDocument).filter(
+    query = db_session.query(KnowledgeDocument).filter(
         KnowledgeDocument.content_hash == content_hash
-    ).first()
+    )
+    if user_id is not None:
+        query = query.filter(KnowledgeDocument.uploaded_by == user_id)
+
+    existing_doc = query.first()
 
     if existing_doc:
         return existing_doc.id

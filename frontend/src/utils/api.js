@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { getCurrentLocale } from '@/locales'
+import { resolveHistoryBase } from '@/utils/embedBase'
 
 // 创建 axios 实例
 const api = axios.create({
@@ -39,15 +40,19 @@ api.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // 登录接口的 401 是正常业务错误，不触发全局跳转
-          if (error.config?.url?.includes('/api/auth/login')) {
+          // 登录/会话探测接口的 401 是正常业务错误（如未登录访客的 checkAuth 探测），
+          // 不触发全局跳转，交给路由守卫做 SPA 内重定向
+          if (error.config?.url?.includes('/api/auth/login') ||
+              error.config?.url?.includes('/api/auth/me')) {
             break
           }
-          // 未授权,清除 token 并跳转到登录页
+          // 未授权,清除 token 并跳转到登录页。
+          // 经 resolveHistoryBase 拼接，兼容同站反代前缀（如 /agentteams/）下的嵌入部署，
+          // 否则会被送到根路径 /login 落在前缀之外
           localStorage.removeItem('token')
           localStorage.removeItem('user')
-          window.location.href = '/login'
           ElMessage.error('登录已过期,请重新登录')
+          window.location.href = `${resolveHistoryBase()}login`
           break
         case 403:
           ElMessage.error('没有权限访问')

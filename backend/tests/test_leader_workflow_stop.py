@@ -34,6 +34,14 @@ def _inject_services(**overrides) -> NodeServices:
     return svc
 
 
+@pytest.fixture(autouse=True)
+def _reset_node_services_context():
+    """用例结束后复位 ContextVar，防止 MagicMock 会话泄漏到同线程的后续测试"""
+    from leader import node_services
+    yield
+    node_services._current_services.set(None)
+
+
 def _base_state(**overrides) -> LeaderWorkflowState:
     """构造最小 LeaderWorkflowState（TypedDict，字段非强制）"""
     state = LeaderWorkflowState(
@@ -58,10 +66,10 @@ class TestShouldStopWorkflow:
         assert should_stop_workflow(state) is True
 
     def test_memory_flag_false_and_no_db_returns_false(self):
-        """内存标志为 False 且无 DB 会话时返回 False"""
-        _inject_services(db_session=None)
-        state = _base_state(stop_requested=False)
-        assert should_stop_workflow(state) is False
+        """内存标志为 False 且 DB 不可用时返回 False（按未停止处理）"""
+        with patch('db.get_db_session', side_effect=RuntimeError('db unavailable')):
+            state = _base_state(stop_requested=False)
+            assert should_stop_workflow(state) is False
 
     def test_db_flag_true_returns_true(self):
         """DB 中 LeaderSession.stop_requested 为 True 返回 True"""
@@ -69,9 +77,9 @@ class TestShouldStopWorkflow:
         magic_session = MagicMock()
         magic_session.stop_requested = True
         magic_db.get.side_effect = [None, magic_session]
-        _inject_services(db_session=magic_db)
-        state = _base_state(stop_requested=False, session_id=100)
-        assert should_stop_workflow(state) is True
+        with patch('db.get_db_session', return_value=magic_db):
+            state = _base_state(stop_requested=False, session_id=100)
+            assert should_stop_workflow(state) is True
 
     def test_db_flag_nontruthy_object_returns_false(self):
         """DB 标志为其它 truthy 对象（非 True）不被误判为已停止"""
@@ -79,9 +87,9 @@ class TestShouldStopWorkflow:
         magic_session = MagicMock()
         magic_session.stop_requested = "some-string"  # truthy 但非 True
         magic_db.get.side_effect = [None, magic_session]
-        _inject_services(db_session=magic_db)
-        state = _base_state(stop_requested=False, session_id=100)
-        assert should_stop_workflow(state) is False
+        with patch('db.get_db_session', return_value=magic_db):
+            state = _base_state(stop_requested=False, session_id=100)
+            assert should_stop_workflow(state) is False
 
     def test_no_session_id_returns_false(self):
         """无 session_id 时不查 DB，返回 False"""

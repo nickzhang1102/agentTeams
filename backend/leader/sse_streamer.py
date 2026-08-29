@@ -211,27 +211,11 @@ class SSEStreamer:
 
         # === on_chain_end：节点执行完成 ===
         if event_type == "on_chain_end":
-            # v2 用 output，v1 用 updates，兼容两者
-            updates = data.get("updates") or data.get("output") or {}
-            # 检查是否有 sse_events（节点已生成格式化事件）
-            if "sse_events" in updates:
-                sse_events = updates["sse_events"]
-                if isinstance(sse_events, list) and sse_events:
-                    # 返回所有 SSE 事件（而非仅最后一个）
-                    results = []
-                    for sse_event in sse_events:
-                        if "session_id" not in sse_event and self.session_id:
-                            sse_event["session_id"] = self.session_id
-                        results.append(sse_event)
-                    logger.debug(f"Node '{node_name}' produced {len(results)} SSE events: {[e.get('type') for e in results]}")
-                    return results
-                elif sse_events:
-                    if "session_id" not in sse_events and self.session_id:
-                        sse_events["session_id"] = self.session_id
-                    return [sse_events]
-            # 默认：不生成框架级完成事件（节点自身已发送有实质内容的事件）
-            if node_name in ("__start__", "__end__") or node_name.startswith("route_after"):
-                return []
+            # 不转发 state 里的 sse_events：各节点在产生事件时已通过
+            # _emit/push_sse_event 实时推送，而 state.sse_events 是"历史累计值"，
+            # 在每个节点结束（含图级 LangGraph 链结束）时重复转发会造成
+            # 同一事件被投递 O(节点数) 次（前端被迫做客户端去重）。
+            # 事件只走实时通道；此分支仅保留占位以说明设计。
             return []
 
         # === on_tool_start：工具开始调用（Agent 执行） ===
@@ -381,12 +365,15 @@ class SSEStreamer:
         event_queue: queue.Queue = queue.Queue()
 
         async def _stream_async():
-            """异步执行 graph，事件实时放入队列"""
+            """异步执行图，事件实时放入队列
+
+            委托 astream_graph_events（生产路径）：实时队列 + LangGraph 事件
+            双通道在那一层统一桥接，避免本同步包装自建一条只消费
+            state.sse_events 的孤立通道（节点 _emit 事件对其不可见）。
+            """
             try:
-                async for event in graph.astream_events(initial_state, version="v2"):
-                    sse_event_list = self.langgraph_event_to_sse(event)
-                    for sse_event in sse_event_list:
-                        event_queue.put(sse_event)
+                async for sse_event in self.astream_graph_events(graph, initial_state):
+                    event_queue.put(sse_event)
             except Exception as e:
                 # 原始异常仅入日志；SSE 通道只暴露通用文案，避免内部细节外泄
                 logger.error(f"LangGraph streaming error: {e}", exc_info=True)

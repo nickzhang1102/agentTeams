@@ -6,7 +6,7 @@
 import asyncio
 import time
 import logging
-from datetime import datetime, timezone
+from utils.time_utils import utcnow_naive
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -152,7 +152,7 @@ async def test_model(model_id: int, admin=Depends(get_admin_user)):
     result = await asyncio.to_thread(_test_model_connection, model)
 
     # 更新测试结果到 DB
-    model.last_test_at = datetime.now(timezone.utc)
+    model.last_test_at = utcnow_naive()
     model.last_test_ok = result['ok']
     model.last_test_error = result.get('error')
     db.commit()
@@ -274,7 +274,7 @@ def health_check_all_models(session=None):
     """
     _db = session if session is not None else db
     models = _db.query(LLMModel).filter(LLMModel.is_enabled == True).all()
-    now = datetime.now(timezone.utc)
+    now = utcnow_naive()
 
     for model in models:
         result = _test_model_connection(model)

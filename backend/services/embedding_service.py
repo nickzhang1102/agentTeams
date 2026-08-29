@@ -6,6 +6,7 @@
 
 import hashlib
 import json
+import threading
 import logging
 import os
 from pathlib import Path
@@ -16,6 +17,9 @@ from openai import OpenAI
 from config import Config
 
 logger = logging.getLogger(__name__)
+
+# 同一用户图谱向量的并发重建互斥（上传后台线程 vs 删除文档协程）
+_sync_write_lock = threading.Lock()
 
 # 向量维度（由模型决定，首次 embed 时自动检测）
 _embedding_dim: Optional[int] = None
@@ -154,33 +158,47 @@ class EmbeddingService:
             return {'synced': 0, 'failed': 0, 'skipped': True}
 
         # 删除旧向量
-        db.query(NodeEmbedding).filter(
-            NodeEmbedding.user_id == user_id
-        ).delete()
-        db.flush()
+        # 这里运行在共享的 thread-local scoped session 上（上传后台线程与删除
+        # 文档协程可能并发同一用户），delete-then-insert 竞态会撞
+        # uq_node_embedding_user_node。提交失败必须 rollback，否则 session
+        # 进入 pending-rollback 态，同线程后续所有 DB 操作持续报错直到回收。
+        # 全局锁串行化写入段，消除并发同步之间的唯一约束冲突。
+        with _sync_write_lock:
+            try:
+                db.query(NodeEmbedding).filter(
+                    NodeEmbedding.user_id == user_id
+                ).delete()
+                db.flush()
 
-        # 批量生成向量
-        labels = [n.get('label', '') for n in nodes]
-        node_ids = [n.get('id', '') for n in nodes]
+                # 批量生成向量
+                labels = [n.get('label', '') for n in nodes]
+                node_ids = [n.get('id', '') for n in nodes]
 
-        vectors = self.embed_batch(labels)
+                vectors = self.embed_batch(labels)
 
-        synced = 0
-        failed = 0
-        for node_id, label, vec in zip(node_ids, labels, vectors):
-            if not node_id or not label or vec is None:
-                failed += 1
-                continue
-            record = NodeEmbedding(
-                user_id=user_id,
-                node_id=node_id,
-                label=label,
-                embedding=vec,
-                graph_version=graph_version,
-            )
-            db.add(record)
-            synced += 1
+                synced = 0
+                failed = 0
+                for node_id, label, vec in zip(node_ids, labels, vectors):
+                    if not node_id or not label or vec is None:
+                        failed += 1
+                        continue
+                    record = NodeEmbedding(
+                        user_id=user_id,
+                        node_id=node_id,
+                        label=label,
+                        embedding=vec,
+                        graph_version=graph_version,
+                    )
+                    db.add(record)
+                    synced += 1
 
-        db.commit()
+                db.commit()
+            except Exception:
+                db.rollback()
+                logger.exception(
+                    f'EmbeddingService: failed to sync embeddings for user {user_id}'
+                )
+                return {'synced': 0, 'failed': len(nodes), 'skipped': False}
+
         logger.info(f'EmbeddingService: synced {synced} nodes for user {user_id}, failed {failed}')
         return {'synced': synced, 'failed': failed, 'skipped': False}

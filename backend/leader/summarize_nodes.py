@@ -76,6 +76,7 @@ def summarize_node(state: LeaderWorkflowState) -> Dict:
     if should_stop_workflow(state):
         logger.info("summarize_node: 检测到停止请求，跳过最终报告生成")
         stop_event = stop_workflow(state)
+        _emit(session_id, stop_event)
         return {
             "current_phase": "execution_stopped",
             "quality_status": "stopped",
@@ -127,6 +128,7 @@ def summarize_node(state: LeaderWorkflowState) -> Dict:
             if final_report_record is None and should_stop_workflow(state):
                 logger.info("summarize_node: 空结果报告持久化被停止请求阻止")
                 stop_event = stop_workflow(state)
+                _emit(session_id, stop_event)
                 return {
                     "current_phase": "execution_stopped",
                     "quality_status": "stopped",
@@ -181,6 +183,7 @@ def summarize_node(state: LeaderWorkflowState) -> Dict:
             if final_report_record is None and should_stop_workflow(state):
                 logger.info("summarize_node: 全失败报告持久化被停止请求阻止")
                 stop_event = stop_workflow(state)
+                _emit(session_id, stop_event)
                 return {
                     "current_phase": "execution_stopped",
                     "quality_status": "stopped",
@@ -292,6 +295,7 @@ def summarize_node(state: LeaderWorkflowState) -> Dict:
     if should_stop_workflow(state):
         logger.info("summarize_node: 汇总生成期间收到停止请求，丢弃迟到报告")
         stop_event = stop_workflow(state)
+        _emit(session_id, stop_event)
         return {
             "current_phase": "execution_stopped",
             "quality_status": "stopped",
@@ -343,6 +347,7 @@ def summarize_node(state: LeaderWorkflowState) -> Dict:
         if final_report_record is None and should_stop_workflow(state):
             logger.info("summarize_node: 最终报告持久化被停止请求阻止")
             stop_event = stop_workflow(state)
+            _emit(session_id, stop_event)
             return {
                 "current_phase": "execution_stopped",
                 "quality_status": "stopped",

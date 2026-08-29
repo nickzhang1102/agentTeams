@@ -112,6 +112,13 @@ def _override_get_db():
         session.close()
 
 
+def iter_app_route_paths(application):
+    """枚举应用上全部已注册路由的完整路径（FastAPI 版本无关）。"""
+    from utils.route_utils import iter_route_paths
+
+    yield from iter_route_paths(application.router)
+
+
 def encrypt_password_for_test(password: str) -> str:
     """测试辅助函数：RSA 加密密码"""
     _, public_key_pem = get_or_create_rsa_keys()

@@ -129,7 +129,7 @@ def get_openharness_status(db_session: Session = Depends(get_db), admin: User = 
             pass
 
         try:
-            from skills_manager import get_skills_manager
+            from services.skills_manager import get_skills_manager
             manager = get_skills_manager()
             skills_count = len(manager.skills)
         except Exception:

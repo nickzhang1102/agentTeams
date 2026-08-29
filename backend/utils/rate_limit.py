@@ -12,14 +12,20 @@ from config import Config
 def get_client_ip(request):
     """返回限流键客户端 IP。
 
-    仅当 TRUST_PROXY=true（应用位于可信反代之后）时，
-    取 X-Forwarded-For 最左 IP；否则按直连地址计数，
-    避免客户端伪造该头绕过限流。
+    仅当 TRUST_PROXY=true（应用位于可信反代之后）时解析 X-Forwarded-For；
+    否则按直连地址计数，避免客户端伪造该头绕过限流。
+
+    X-Forwarded-For 取「最右」条目：项目自带的 nginx 反代用
+    $proxy_add_x_forwarded_for 追加真实来源 IP，最左条目是客户端可任意
+    伪造的值——取最左会让每次请求拿到全新限流桶，登录/注册等严格限流
+    形同虚设。单层可信代理下最右条目即代理写入的真实来源。
     """
     if Config.TRUST_PROXY:
         forwarded = request.headers.get('X-Forwarded-For')
         if forwarded:
-            return forwarded.split(',')[0].strip()
+            entries = [entry.strip() for entry in forwarded.split(',') if entry.strip()]
+            if entries:
+                return entries[-1]
     return get_remote_address(request)
 
 

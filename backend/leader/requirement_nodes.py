@@ -374,6 +374,20 @@ def route_after_requirement(state: LeaderWorkflowState) -> str:
     return "human_input"
 
 
+def route_after_human_input(state: LeaderWorkflowState) -> str:
+    """
+    human_input 节点后的路由条件
+
+    - "end": 正常提问，等待用户回答（由 continue_leader_workflow 恢复）
+    - "team_form": 问题无效的降级路径（human_input_node 返回 team_form 阶段），
+      直接进入团队组建；此前该路径被无条件 add_edge(human_input, END) 吞掉，
+      工作流以非等待态结束并被 ensure_terminal_state_sync 标记为 failed。
+    """
+    if state.get("current_phase") == "team_form":
+        return "team_form"
+    return "end"
+
+
 def human_input_node(state: LeaderWorkflowState) -> Dict:
     """
     用户输入等待节点

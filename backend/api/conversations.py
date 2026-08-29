@@ -271,6 +271,71 @@ async def get_featured_conversations(
         )
 
 
+# ==================== 搜索端点 ====================
+# 注意：/search 必须注册在 /{conversation_id} 之前，否则会被路径参数
+# 路由吞掉（Starlette 按注册顺序匹配），导致该端点永远返回 422。
+
+@router.get("/search")
+async def search_messages(
+    q: str = Query(..., min_length=1, max_length=200),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=100),
+    user = Depends(get_current_user),
+    db_session: Session = Depends(get_db)
+):
+    """搜索消息内容（利用 pg_trgm GIN 索引加速 ILIKE）"""
+    try:
+        # 使用 JOIN 替代子查询，让 PostgreSQL 优化器更高效地利用索引
+        query = db_session.query(Message).join(
+            Conversation, Message.conversation_id == Conversation.id
+        ).filter(
+            Conversation.user_id == user.id,
+            Message.raw_content.ilike(f'%{q}%')
+        ).order_by(Message.created_at.desc())
+
+        total = query.count()
+        messages = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        # 批量加载所属对话信息
+        conv_ids = list({msg.conversation_id for msg in messages})
+        convs = {c.id: c for c in db_session.query(Conversation).filter(Conversation.id.in_(conv_ids)).all()}
+
+        results = []
+        for msg in messages:
+            conv = convs.get(msg.conversation_id)
+            content_text = msg.raw_content or (str(msg.content) if msg.content else '')
+            idx = content_text.lower().find(q.lower())
+            start = max(0, idx - 100)
+            end = min(len(content_text), idx + len(q) + 100)
+            snippet = content_text[start:end]
+
+            results.append({
+                'message_id': msg.id,
+                'conversation_id': msg.conversation_id,
+                'conversation_title': conv.title if conv else '',
+                'role': msg.role,
+                'snippet': snippet,
+                'created_at': msg.created_at.isoformat() if msg.created_at else None
+            })
+
+        return {
+            'messages': results,
+            'pagination': {
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'pages': (total + per_page - 1) // per_page if total > 0 else 0
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"搜索消息错误: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={'error': '搜索消息失败'}
+        )
+
+
 @router.get("/{conversation_id}")
 async def get_conversation_detail(
     conversation_id: int,
@@ -537,69 +602,6 @@ async def archive_conversation(
         )
 
 
-# ==================== 搜索端点 ====================
-
-@router.get("/search")
-async def search_messages(
-    q: str = Query(..., min_length=1, max_length=200),
-    page: int = Query(default=1, ge=1),
-    per_page: int = Query(default=20, ge=1, le=100),
-    user = Depends(get_current_user),
-    db_session: Session = Depends(get_db)
-):
-    """搜索消息内容（利用 pg_trgm GIN 索引加速 ILIKE）"""
-    try:
-        # 使用 JOIN 替代子查询，让 PostgreSQL 优化器更高效地利用索引
-        query = db_session.query(Message).join(
-            Conversation, Message.conversation_id == Conversation.id
-        ).filter(
-            Conversation.user_id == user.id,
-            Message.raw_content.ilike(f'%{q}%')
-        ).order_by(Message.created_at.desc())
-
-        total = query.count()
-        messages = query.offset((page - 1) * per_page).limit(per_page).all()
-
-        # 批量加载所属对话信息
-        conv_ids = list({msg.conversation_id for msg in messages})
-        convs = {c.id: c for c in db_session.query(Conversation).filter(Conversation.id.in_(conv_ids)).all()}
-
-        results = []
-        for msg in messages:
-            conv = convs.get(msg.conversation_id)
-            content_text = msg.raw_content or (str(msg.content) if msg.content else '')
-            idx = content_text.lower().find(q.lower())
-            start = max(0, idx - 100)
-            end = min(len(content_text), idx + len(q) + 100)
-            snippet = content_text[start:end]
-
-            results.append({
-                'message_id': msg.id,
-                'conversation_id': msg.conversation_id,
-                'conversation_title': conv.title if conv else '',
-                'role': msg.role,
-                'snippet': snippet,
-                'created_at': msg.created_at.isoformat() if msg.created_at else None
-            })
-
-        return {
-            'messages': results,
-            'pagination': {
-                'total': total,
-                'page': page,
-                'per_page': per_page,
-                'pages': (total + per_page - 1) // per_page if total > 0 else 0
-            }
-        }
-
-    except Exception as e:
-        logger.error(f"搜索消息错误: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail={'error': '搜索消息失败'}
-        )
-
-
 # ==================== 公开分享端点（无需认证） ====================
 
 @router.get("/share/{share_token}")
@@ -632,11 +634,17 @@ async def get_conversation_by_share_token(
             conversation_id=conversation.id
         ).all()
 
-        # 构建返回数据
+        # 构建返回数据；file_path 是服务器内部存储路径，
+        # 对免认证的分享访问者没有用途，不应泄露服务器目录结构
+        file_dicts = []
+        for f in files:
+            fd = f.to_dict()
+            fd.pop('file_path', None)
+            file_dicts.append(fd)
         return {
             'conversation': conversation.to_dict(),
             'messages': [msg.to_dict() for msg in messages],
-            'files': [f.to_dict() for f in files]
+            'files': file_dicts
         }
 
     except HTTPException:

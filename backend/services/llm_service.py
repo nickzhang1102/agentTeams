@@ -145,9 +145,17 @@ def _load_model_config() -> Dict[str, Any]:
         logger.info("Loaded %d model specs from DB", len(_MODEL_CONFIG_CACHE["models"]))
         return _MODEL_CONFIG_CACHE
     except Exception:
+        # 失败结果不缓存：缓存空映射会让一次瞬时 DB 故障把该 worker 的模型
+        # 解析降级到进程退出（无 TTL，管理端 invalidate 也只影响单个 worker）。
+        # 保持 None，下次调用重新尝试加载。
         logger.exception("Failed to load model config from DB")
-        _MODEL_CONFIG_CACHE = {"defaults": {"context_limit": 128000, "max_output_tokens": 32768}, "models": {}}
-        return _MODEL_CONFIG_CACHE
+        _MODEL_CONFIG_CACHE = None
+        return {
+            "defaults": {"context_limit": 128000, "max_output_tokens": 32768},
+            "models": {},
+            "_lower_index": {},
+            "default_model": None,
+        }
 
 
 def _model_to_runtime_info(model) -> Dict[str, Any]:
@@ -929,6 +937,7 @@ class LLMService:
         last_error = None
         rate_limit_retries = 0
         attempt = 0
+        yielded_content = 0  # 已向调用方产出的内容事件数（text/tool_call_delta）
 
         while True:
             attempt += 1
@@ -950,7 +959,10 @@ class LLMService:
                         # 流式调用（无 tools 时）
                         stream = self.client.chat.completions.create(**call_kwargs)
                         for chunk in stream:
-                            yield from self._parse_stream_chunk(chunk)
+                            for event in self._parse_stream_chunk(chunk):
+                                if event.get("type") in ("text", "tool_call_delta"):
+                                    yielded_content += 1
+                                yield event
                     else:
                         # 非流式调用（有 tools 时）
                         # GLM-5 等模型流式模式不返回 tool_calls，必须用非流式
@@ -986,6 +998,15 @@ class LLMService:
                     f" | max_tokens={self.clamp_max_tokens(max_tokens)}"
                     f" | context_limit={self.get_context_limit()}"
                 )
+
+                # 已产出部分内容则禁止重试：重发会从零重新流式输出，
+                # 客户端会把「半截旧答案 + 完整新答案」拼接显示成重复内容
+                if yielded_content:
+                    logger.error(
+                        f"LLM API stream interrupted after partial output "
+                        f"({yielded_content} content events); not retrying: {error_detail}"
+                    )
+                    raise
 
                 is_rate_limit = _is_rate_limit_error(e)
                 should_retry = (

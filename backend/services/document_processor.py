@@ -84,45 +84,46 @@ class DocumentProcessor:
             import fitz  # pymupdf
 
             doc = fitz.open(file_path)
+            try:
 
-            page_count = len(doc)
-            if page_count > MAX_PDF_PAGES:
+                page_count = len(doc)
+                if page_count > MAX_PDF_PAGES:
+                    return {
+                        'success': False,
+                        'error': f'PDF 页数超限（{page_count} > {MAX_PDF_PAGES}），请拆分或缩减后重试',
+                        'text': None
+                    }
+
+                text_parts = []
+                metadata = {'page_count': page_count, 'type': 'PDF 文档'}
+
+                doc_metadata = doc.metadata
+                if doc_metadata:
+                    if doc_metadata.get('title'):
+                        metadata['title'] = doc_metadata['title']
+                    if doc_metadata.get('author'):
+                        metadata['author'] = doc_metadata['author']
+                    if doc_metadata.get('creator'):
+                        metadata['creator'] = doc_metadata['creator']
+
+                for i, page in enumerate(doc):
+                    page_text = page.get_text("text")
+                    if page_text.strip():
+                        text_parts.append(f"--- 第 {i + 1} 页 ---\n{page_text}")
+
+                full_text = '\n\n'.join(text_parts)
+
+                if not full_text.strip():
+                    return {
+                        'success': True,
+                        'text': '[此 PDF 可能是扫描版或图片型文档，无法提取文本内容。请考虑使用 OCR 工具处理。]',
+                        'metadata': metadata,
+                        'warning': '未提取到文本内容，可能是扫描版 PDF'
+                    }
+
+                return {'success': True, 'text': full_text, 'metadata': metadata}
+            finally:
                 doc.close()
-                return {
-                    'success': False,
-                    'error': f'PDF 页数超限（{page_count} > {MAX_PDF_PAGES}），请拆分或缩减后重试',
-                    'text': None
-                }
-
-            text_parts = []
-            metadata = {'page_count': page_count, 'type': 'PDF 文档'}
-
-            doc_metadata = doc.metadata
-            if doc_metadata:
-                if doc_metadata.get('title'):
-                    metadata['title'] = doc_metadata['title']
-                if doc_metadata.get('author'):
-                    metadata['author'] = doc_metadata['author']
-                if doc_metadata.get('creator'):
-                    metadata['creator'] = doc_metadata['creator']
-
-            for i, page in enumerate(doc):
-                page_text = page.get_text("text")
-                if page_text.strip():
-                    text_parts.append(f"--- 第 {i + 1} 页 ---\n{page_text}")
-
-            full_text = '\n\n'.join(text_parts)
-            doc.close()
-
-            if not full_text.strip():
-                return {
-                    'success': True,
-                    'text': '[此 PDF 可能是扫描版或图片型文档，无法提取文本内容。请考虑使用 OCR 工具处理。]',
-                    'metadata': metadata,
-                    'warning': '未提取到文本内容，可能是扫描版 PDF'
-                }
-
-            return {'success': True, 'text': full_text, 'metadata': metadata}
         except ImportError:
             return {'success': False, 'error': 'PDF 解析库未安装，请安装 pymupdf', 'text': None}
 
@@ -183,35 +184,37 @@ class DocumentProcessor:
             from openpyxl import load_workbook
 
             wb = load_workbook(file_path, data_only=True, read_only=True)
-            text_parts = []
+            try:
+                text_parts = []
 
-            metadata = {
-                'sheet_count': len(wb.sheetnames),
-                'sheet_names': wb.sheetnames,
-                'type': 'Excel 文档'
-            }
+                metadata = {
+                    'sheet_count': len(wb.sheetnames),
+                    'sheet_names': wb.sheetnames,
+                    'type': 'Excel 文档'
+                }
 
-            for sheet_name in wb.sheetnames:
-                ws = wb[sheet_name]
-                sheet_text = [f'=== 工作表: {sheet_name} ===']
-                row_limit_hit = False
+                for sheet_name in wb.sheetnames:
+                    ws = wb[sheet_name]
+                    sheet_text = [f'=== 工作表: {sheet_name} ===']
+                    row_limit_hit = False
 
-                for row_idx, row in enumerate(ws.iter_rows(values_only=True), start=1):
-                    if row_idx > MAX_EXCEL_ROWS:
-                        row_limit_hit = True
-                        break
-                    row_data = [str(c) if c is not None else '' for c in row]
-                    if any(row_data):
-                        sheet_text.append(' | '.join(row_data))
+                    for row_idx, row in enumerate(ws.iter_rows(values_only=True), start=1):
+                        if row_idx > MAX_EXCEL_ROWS:
+                            row_limit_hit = True
+                            break
+                        row_data = [str(c) if c is not None else '' for c in row]
+                        if any(row_data):
+                            sheet_text.append(' | '.join(row_data))
 
-                if row_limit_hit:
-                    sheet_text.append(f'... (已截断，行数超过 {MAX_EXCEL_ROWS})')
-                text_parts.append('\n'.join(sheet_text))
+                    if row_limit_hit:
+                        sheet_text.append(f'... (已截断，行数超过 {MAX_EXCEL_ROWS})')
+                    text_parts.append('\n'.join(sheet_text))
 
-            full_text = '\n\n'.join(text_parts)
-            wb.close()
+                full_text = '\n\n'.join(text_parts)
 
-            return {'success': True, 'text': full_text, 'metadata': metadata}
+                return {'success': True, 'text': full_text, 'metadata': metadata}
+            finally:
+                wb.close()
         except ImportError:
             return {'success': False, 'error': 'Excel 解析库未安装，请安装 openpyxl', 'text': None}
 
@@ -296,62 +299,63 @@ class DocumentProcessor:
 
             # 从二进制内容打开文档
             doc = fitz.open(stream=content, filetype="pdf")
+            try:
 
-            # 页数上限检查，防止资源耗尽
-            page_count = len(doc)
-            if page_count > MAX_PDF_PAGES:
-                doc.close()
-                return {
-                    'success': False,
-                    'error': f'PDF 页数超限（{page_count} > {MAX_PDF_PAGES}），请拆分或缩减后重试',
-                    'text': None
+                # 页数上限检查，防止资源耗尽
+                page_count = len(doc)
+                if page_count > MAX_PDF_PAGES:
+                    return {
+                        'success': False,
+                        'error': f'PDF 页数超限（{page_count} > {MAX_PDF_PAGES}），请拆分或缩减后重试',
+                        'text': None
+                    }
+
+                text_parts = []
+
+                # 提取元数据
+                metadata = {
+                    'page_count': page_count,
+                    'type': 'PDF 文档'
                 }
 
-            text_parts = []
+                # 提取文档元信息
+                doc_metadata = doc.metadata
+                if doc_metadata:
+                    if doc_metadata.get('title'):
+                        metadata['title'] = doc_metadata['title']
+                    if doc_metadata.get('author'):
+                        metadata['author'] = doc_metadata['author']
+                    if doc_metadata.get('creator'):
+                        metadata['creator'] = doc_metadata['creator']
 
-            # 提取元数据
-            metadata = {
-                'page_count': page_count,
-                'type': 'PDF 文档'
-            }
+                # 提取每一页的文本
+                for i, page in enumerate(doc):
+                    # 使用 get_text() 方法提取文本，支持多种输出格式
+                    # "text" 是默认格式，保留文本布局
+                    page_text = page.get_text("text")
+                    if page_text.strip():
+                        text_parts.append(f"--- 第 {i + 1} 页 ---\n{page_text}")
 
-            # 提取文档元信息
-            doc_metadata = doc.metadata
-            if doc_metadata:
-                if doc_metadata.get('title'):
-                    metadata['title'] = doc_metadata['title']
-                if doc_metadata.get('author'):
-                    metadata['author'] = doc_metadata['author']
-                if doc_metadata.get('creator'):
-                    metadata['creator'] = doc_metadata['creator']
+                full_text = '\n\n'.join(text_parts)
 
-            # 提取每一页的文本
-            for i, page in enumerate(doc):
-                # 使用 get_text() 方法提取文本，支持多种输出格式
-                # "text" 是默认格式，保留文本布局
-                page_text = page.get_text("text")
-                if page_text.strip():
-                    text_parts.append(f"--- 第 {i + 1} 页 ---\n{page_text}")
+                # 关闭文档
 
-            full_text = '\n\n'.join(text_parts)
+                # 如果没有提取到任何文本，可能是扫描版 PDF
+                if not full_text.strip():
+                    return {
+                        'success': True,
+                        'text': '[此 PDF 可能是扫描版或图片型文档，无法提取文本内容。请考虑使用 OCR 工具处理。]',
+                        'metadata': metadata,
+                        'warning': '未提取到文本内容，可能是扫描版 PDF'
+                    }
 
-            # 关闭文档
-            doc.close()
-
-            # 如果没有提取到任何文本，可能是扫描版 PDF
-            if not full_text.strip():
                 return {
                     'success': True,
-                    'text': '[此 PDF 可能是扫描版或图片型文档，无法提取文本内容。请考虑使用 OCR 工具处理。]',
-                    'metadata': metadata,
-                    'warning': '未提取到文本内容，可能是扫描版 PDF'
+                    'text': full_text,
+                    'metadata': metadata
                 }
-
-            return {
-                'success': True,
-                'text': full_text,
-                'metadata': metadata
-            }
+            finally:
+                doc.close()
         except ImportError:
             return {
                 'success': False,
@@ -434,43 +438,45 @@ class DocumentProcessor:
             from openpyxl import load_workbook
 
             wb = load_workbook(io.BytesIO(content), data_only=True, read_only=True)
-            text_parts = []
+            try:
+                text_parts = []
 
-            # 提取元数据
-            metadata = {
-                'sheet_count': len(wb.sheetnames),
-                'sheet_names': wb.sheetnames,
-                'type': 'Excel 文档'
-            }
+                # 提取元数据
+                metadata = {
+                    'sheet_count': len(wb.sheetnames),
+                    'sheet_names': wb.sheetnames,
+                    'type': 'Excel 文档'
+                }
 
-            # 提取每个工作表的内容（流式逐行读取）
-            for sheet_name in wb.sheetnames:
-                ws = wb[sheet_name]
-                sheet_text = [f'=== 工作表: {sheet_name} ===']
-                row_limit_hit = False
+                # 提取每个工作表的内容（流式逐行读取）
+                for sheet_name in wb.sheetnames:
+                    ws = wb[sheet_name]
+                    sheet_text = [f'=== 工作表: {sheet_name} ===']
+                    row_limit_hit = False
 
-                for row_idx, row in enumerate(ws.iter_rows(values_only=True), start=1):
-                    if row_idx > MAX_EXCEL_ROWS:
-                        row_limit_hit = True
-                        break
-                    row_data = [str(c) if c is not None else '' for c in row]
-                    if any(row_data):  # 只添加非空行
-                        sheet_text.append(' | '.join(row_data))
+                    for row_idx, row in enumerate(ws.iter_rows(values_only=True), start=1):
+                        if row_idx > MAX_EXCEL_ROWS:
+                            row_limit_hit = True
+                            break
+                        row_data = [str(c) if c is not None else '' for c in row]
+                        if any(row_data):  # 只添加非空行
+                            sheet_text.append(' | '.join(row_data))
 
-                if row_limit_hit:
-                    sheet_text.append(f'... (已截断，行数超过 {MAX_EXCEL_ROWS})')
-                text_parts.append('\n'.join(sheet_text))
+                    if row_limit_hit:
+                        sheet_text.append(f'... (已截断，行数超过 {MAX_EXCEL_ROWS})')
+                    text_parts.append('\n'.join(sheet_text))
 
-            full_text = '\n\n'.join(text_parts)
+                full_text = '\n\n'.join(text_parts)
 
-            # read_only 模式需显式关闭释放资源
-            wb.close()
+                # read_only 模式需显式关闭释放资源
 
-            return {
-                'success': True,
-                'text': full_text,
-                'metadata': metadata
-            }
+                return {
+                    'success': True,
+                    'text': full_text,
+                    'metadata': metadata
+                }
+            finally:
+                wb.close()
         except ImportError:
             return {
                 'success': False,

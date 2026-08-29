@@ -16,6 +16,8 @@ import re
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
+
+from utils.time_utils import utcnow_naive
 from pathlib import Path
 from typing import Optional
 
@@ -158,7 +160,7 @@ def _record_auth_failure(user: User, db_session: Session) -> None:
     db_session.refresh(user, attribute_names=['failed_login_attempts'])
 
     if user.failed_login_attempts >= 5:
-        user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+        user.locked_until = utcnow_naive() + timedelta(minutes=15)
         user.lockout_reason = '连续登录失败超过5次'
         logger.warning(
             f"Account locked due to failed attempts: user_id={user.id}, "
@@ -396,7 +398,7 @@ async def login(request: Request, body: LoginRequest, db_session: Session = Depe
             )
 
         # 检查账户是否被锁定
-        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+        if user.locked_until and user.locked_until > utcnow_naive():
             # 统一错误提示，不泄露锁定状态
             raise HTTPException(
                 status_code=401,
@@ -404,7 +406,7 @@ async def login(request: Request, body: LoginRequest, db_session: Session = Depe
             )
 
         # 如果锁定已过期，重置计数
-        if user.locked_until and user.locked_until <= datetime.now(timezone.utc):
+        if user.locked_until and user.locked_until <= utcnow_naive():
             user.failed_login_attempts = 0
             user.locked_until = None
             user.lockout_reason = None
@@ -428,7 +430,7 @@ async def login(request: Request, body: LoginRequest, db_session: Session = Depe
         user.failed_login_attempts = 0
         user.locked_until = None
         user.lockout_reason = None
-        user.last_login = datetime.now(timezone.utc)
+        user.last_login = utcnow_naive()  # naive UTC，与 DateTime 列存储约定一致
         db_session.commit()
 
         # 创建访问令牌（包含 token_version）

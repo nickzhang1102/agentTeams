@@ -107,6 +107,7 @@ def create_template(
     template = service.create_template(
         name=body.name,
         user_id=user.id,
+        is_admin=user.is_admin,
         description=body.description,
         category=body.category,
         pack_id=body.pack_id,

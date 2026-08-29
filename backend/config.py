@@ -42,8 +42,8 @@ class Config:
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
 
     # 反向代理信任开关：仅当应用部署在可信反代（nginx 等）之后时开启，
-    # 限流才会按 X-Forwarded-For 最左 IP 计数；直连部署必须保持 false，
-    # 否则客户端可伪造该头绕过限流
+    # 限流才按 X-Forwarded-For 的最右条目（由可信代理追加的真实来源 IP）计数；
+    # 直连部署必须保持 false，否则客户端可伪造该头绕过限流
     TRUST_PROXY = os.environ.get('TRUST_PROXY', 'false').lower() == 'true'
 
     # 安全配置：强制要求环境变量，不提供默认值

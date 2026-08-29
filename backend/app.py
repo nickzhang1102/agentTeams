@@ -383,7 +383,8 @@ app.include_router(content_translation_router)
 app.include_router(decision_run_router)
 app.include_router(decision_evidence_legacy_router)
 
-_api_prefix_count = sum(1 for r in app.routes if hasattr(r, 'path') and r.path.startswith('/api/'))
+from utils.route_utils import iter_route_paths
+_api_prefix_count = sum(1 for p in iter_route_paths(app.router) if p.startswith('/api/'))
 logging.info(f"FastAPI app instance created with {_api_prefix_count} API routes registered")
 
 

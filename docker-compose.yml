@@ -7,6 +7,7 @@
 # 2. 编辑 backend/.env 设置必要的环境变量：
 #    - SECRET_KEY
 #    - JWT_SECRET_KEY
+#    - TRUST_PROXY=true（服务经自带 nginx 反代；不开启则限流按 nginx 容器 IP 共享一个桶）
 #    LLM 与 Web Search 凭证在服务启动后通过后台管理配置。
 #
 # 3. 启动服务（首次会自动执行 Alembic 迁移）：

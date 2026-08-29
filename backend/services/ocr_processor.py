@@ -23,6 +23,8 @@ from typing import Optional
 import requests
 from pypdf import PdfReader, PdfWriter
 
+from utils.time_utils import utcnow_naive
+
 logger = logging.getLogger(__name__)
 
 # OCR API 地址由环境变量 PADDLE_OCR_API_URL 提供；未配置时 OCR 功能不可用。
@@ -238,7 +240,7 @@ class OcrProcessor:
         if not doc.original_path or not os.path.exists(doc.original_path):
             doc.status = 'failed'
             doc.ocr_error = 'Original file not found'
-            doc.ocr_processed_at = datetime.now(timezone.utc)
+            doc.ocr_processed_at = utcnow_naive()
             self.db_session.commit()
             return {
                 'success': False,
@@ -270,7 +272,7 @@ class OcrProcessor:
                 doc.markdown_path = str(markdown_dir)
                 doc.status = 'indexed'
                 doc.ocr_error = None
-                doc.ocr_processed_at = datetime.now(timezone.utc)
+                doc.ocr_processed_at = utcnow_naive()
                 self.db_session.commit()
 
                 return {
@@ -284,7 +286,7 @@ class OcrProcessor:
                 # 更新失败状态
                 doc.status = 'failed'
                 doc.ocr_error = result['error']
-                doc.ocr_processed_at = datetime.now(timezone.utc)
+                doc.ocr_processed_at = utcnow_naive()
                 self.db_session.commit()
 
                 return {
@@ -298,7 +300,7 @@ class OcrProcessor:
             logger.exception(f'OCR processing failed for document {doc_id}')
             doc.status = 'failed'
             doc.ocr_error = str(e)
-            doc.ocr_processed_at = datetime.now(timezone.utc)
+            doc.ocr_processed_at = utcnow_naive()
             self.db_session.commit()
 
             return {
@@ -332,7 +334,7 @@ class OcrProcessor:
                 error_msg = result.get('error', 'DocumentProcessor failed')
                 doc.status = 'failed'
                 doc.ocr_error = error_msg
-                doc.ocr_processed_at = datetime.now(timezone.utc)
+                doc.ocr_processed_at = utcnow_naive()
                 self.db_session.commit()
                 return {'success': False, 'markdown_path': None, 'error': error_msg}
 
@@ -345,7 +347,7 @@ class OcrProcessor:
             doc.markdown_path = str(markdown_dir)
             doc.status = 'indexed'
             doc.ocr_error = None
-            doc.ocr_processed_at = datetime.now(timezone.utc)
+            doc.ocr_processed_at = utcnow_naive()
             self.db_session.commit()
 
             logger.info(f'Office document processed: doc_id={doc.id}, chars={len(md_text)}')
@@ -361,7 +363,7 @@ class OcrProcessor:
             logger.exception(f'Office document processing failed: doc_id={doc.id}')
             doc.status = 'failed'
             doc.ocr_error = str(e)
-            doc.ocr_processed_at = datetime.now(timezone.utc)
+            doc.ocr_processed_at = utcnow_naive()
             self.db_session.commit()
             return {'success': False, 'markdown_path': None, 'error': str(e)}
 

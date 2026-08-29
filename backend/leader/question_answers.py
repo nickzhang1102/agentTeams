@@ -1,12 +1,18 @@
 """Shared persistence and continuation flow for Leader requirement answers."""
+import logging
 from typing import AsyncGenerator, Dict, Iterable
 
 from sqlalchemy import func
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from leader.langgraph_entry import async_continue_leader_workflow
+from leader.leader_events import build_fixed_sse_message
 from models import LeaderSession, Message
 from utils.error_handler import safe_sse_error
+
+
+logger = logging.getLogger(__name__)
 
 
 def create_question_answer_events(
@@ -31,10 +37,28 @@ def create_question_answer_events(
         Message.leader_session_id == session.id,
         Message.sequence_number.isnot(None),
     ).scalar_subquery()
-    last_seq_msg = db_session.query(Message).filter(
-        Message.leader_session_id == session.id,
-        Message.sequence_number == max_seq_subq,
-    ).with_for_update(nowait=True).first()
+    try:
+        last_seq_msg = db_session.query(Message).filter(
+            Message.leader_session_id == session.id,
+            Message.sequence_number == max_seq_subq,
+        ).with_for_update(nowait=True).first()
+    except OperationalError:
+        # NOWAIT 行锁被并发提交（双击/多标签）占住：与
+        # async_continue_leader_workflow 的防重入分支同契约，
+        # 以 SSE error 事件优雅返回，而不是抛 500。
+        db_session.rollback()
+        logger.warning(
+            f"[防重入] Session {session.id} 答案行锁获取失败，其他提交正在执行"
+        )
+        locale = getattr(session, 'locale', None) or 'zh-CN'
+
+        async def already_running_events() -> AsyncGenerator[Dict, None]:
+            yield {
+                "type": "error",
+                **build_fixed_sse_message(locale, "leader.error.already_running"),
+            }
+
+        return already_running_events()
     next_seq = (last_seq_msg.sequence_number + 1) if last_seq_msg else 1
 
     answer_data = []

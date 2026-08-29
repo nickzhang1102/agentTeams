@@ -98,7 +98,7 @@ def _on_agent_event(
             error_message=str(event_data.get("tool_output_summary"))[:500] if is_error else None,
         )
 
-    event_queue.append({
+    tool_event = {
         "type": event_type,
         "session_id": session_id,
         "agent_id": agent_id,
@@ -106,7 +106,9 @@ def _on_agent_event(
         "tool_name": tool_name,
         "tool_input": event_data.get("tool_input"),
         "tool_output_summary": event_data.get("tool_output_summary")
-    })
+    }
+    _emit(session_id, tool_event)
+    event_queue.append(tool_event)
 
 
 def agent_execution_node(state: LeaderWorkflowState) -> Dict:
@@ -139,9 +141,11 @@ def agent_execution_node(state: LeaderWorkflowState) -> Dict:
     # DB/持久取消标记必须在任何阶段写入或 Agent 调用之前检查。
     if _check_stop_flag(state):
         from .node_services import stop_workflow
+        stop_event = stop_workflow(state)
+        _emit(session_id, stop_event)
         return {
             "current_phase": "execution_stopped",
-            "sse_events": existing_events + [stop_workflow(state)],
+            "sse_events": existing_events + [stop_event],
         }
 
     if svc.db_session is not None and session_id:
@@ -172,13 +176,15 @@ def agent_execution_node(state: LeaderWorkflowState) -> Dict:
         "leader.phase.execution_starting",
         {"agent_count": total_agents, "batch_count": total_batches},
     )
-    event_queue.append({
+    starting_event = {
         "type": "execution_status",
         "session_id": session_id,
         "phase": "starting",
         "content": fixed_message["message"],
         **fixed_message,
-    })
+    }
+    _emit(session_id, starting_event)
+    event_queue.append(starting_event)
 
     # 初始化 BatchExecutor
     # 使用 NodeServices 中的服务
@@ -189,16 +195,18 @@ def agent_execution_node(state: LeaderWorkflowState) -> Dict:
             generation_locale,
             "leader.execution.unavailable",
         )
+        unavailable_event = {
+            "type": "execution_stopped",
+            "session_id": session_id,
+            "reason": fixed_message["message"],
+            **fixed_message,
+        }
+        _emit(session_id, unavailable_event)
         return {
             "agent_results": [],  # 空结果，后续节点会跳过
             "total_tokens": 0,
             "current_phase": "execution_skipped",
-            "sse_events": existing_events + [{
-                "type": "execution_stopped",
-                "session_id": session_id,
-                "reason": fixed_message["message"],
-                **fixed_message,
-            }]
+            "sse_events": existing_events + [unavailable_event]
         }
 
     stop_checker = lambda: _check_stop_flag(state)
@@ -296,7 +304,9 @@ def agent_execution_node(state: LeaderWorkflowState) -> Dict:
         stopped = any(r.get("status") == "stopped" for r in results)
         if stopped or (stop_checker and stop_checker()):
             from .node_services import stop_workflow
-            event_queue.append(stop_workflow(state))
+            stopped_event = stop_workflow(state)
+            _emit(session_id, stopped_event)
+            event_queue.append(stopped_event)
             return {
                 "agent_results": existing_results + results,
                 "total_tokens": total_tokens,
@@ -309,12 +319,14 @@ def agent_execution_node(state: LeaderWorkflowState) -> Dict:
             "leader.phase.execution_complete",
             {"successful": success_count, "total": total_agents},
         )
-        event_queue.append({
+        complete_event = {
             "type": "execution_complete",
             "session_id": session_id,
             "content": fixed_message["message"],
             **fixed_message,
-        })
+        }
+        _emit(session_id, complete_event)
+        event_queue.append(complete_event)
 
         return {
             "agent_results": merged_results,

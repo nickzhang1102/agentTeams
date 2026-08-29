@@ -5,6 +5,8 @@
 
 import logging
 from datetime import datetime, timedelta, timezone
+
+from utils.time_utils import utcnow_naive
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -34,7 +36,8 @@ def get_performance_overview(
         if period not in ('day', 'week', 'month'):
             period = 'week'
 
-        now = datetime.now(timezone.utc)
+        # 统一用 naive UTC 与 naive DateTime 列比较（非 UTC 会话时区下偏移会污染统计窗口）
+        now = utcnow_naive()
         period_map = {'day': 1, 'week': 7, 'month': 30}
         days = period_map[period]
         since = now - timedelta(days=days)
@@ -110,10 +113,17 @@ def get_performance_tokens(
         if granularity not in ('hour', 'day'):
             granularity = 'day'
 
-        now = datetime.now(timezone.utc)
+        now = utcnow_naive()
+
+        def _parse_naive_utc(value: str) -> datetime:
+            parsed = datetime.fromisoformat(value)
+            if parsed.tzinfo is not None:
+                parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+            return parsed
+
         try:
-            end_date_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc) if end_date else now
-            start_date_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc) if start_date else now - timedelta(days=7)
+            end_date_dt = _parse_naive_utc(end_date) if end_date else now
+            start_date_dt = _parse_naive_utc(start_date) if start_date else now - timedelta(days=7)
         except (ValueError, TypeError):
             raise HTTPException(status_code=400, detail={'error': 'Invalid date format', 'message': 'start_date and end_date must be in ISO format'})
 

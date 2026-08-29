@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from utils.time_utils import utcnow_naive
+
 logger = logging.getLogger(__name__)
 
 
@@ -192,7 +194,7 @@ class GraphifyExtractor:
         # 验证 Markdown 目录存在
         if not doc.markdown_path or not os.path.isdir(doc.markdown_path):
             doc.graphify_error = 'Markdown directory not found'
-            doc.graphify_processed_at = datetime.now(timezone.utc)
+            doc.graphify_processed_at = utcnow_naive()
             self.db_session.commit()
             return {
                 'success': False,
@@ -210,7 +212,7 @@ class GraphifyExtractor:
             if result['success']:
                 # 更新成功状态
                 doc.graphify_error = None
-                doc.graphify_processed_at = datetime.now(timezone.utc)
+                doc.graphify_processed_at = utcnow_naive()
                 doc.graph_nodes = result.get('nodes', 0)
                 doc.graph_edges = result.get('edges', 0)
                 self.db_session.commit()
@@ -235,7 +237,7 @@ class GraphifyExtractor:
             else:
                 # 更新失败状态（保持 OCR indexed，记录错误）
                 doc.graphify_error = result.get('error')
-                doc.graphify_processed_at = datetime.now(timezone.utc)
+                doc.graphify_processed_at = utcnow_naive()
                 self.db_session.commit()
 
                 return {
@@ -247,7 +249,7 @@ class GraphifyExtractor:
         except Exception as e:
             logger.exception(f'Graphify extraction failed for document {doc_id}')
             doc.graphify_error = str(e)
-            doc.graphify_processed_at = datetime.now(timezone.utc)
+            doc.graphify_processed_at = utcnow_naive()
             self.db_session.commit()
 
             return {

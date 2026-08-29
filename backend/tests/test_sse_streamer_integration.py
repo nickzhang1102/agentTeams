@@ -106,8 +106,12 @@ def test_on_chain_start_mapping():
     assert sse_events == []
 
 
-def test_on_chain_end_with_sse_events():
-    """场景 2b：on_chain_end 提取 sse_events"""
+def test_on_chain_end_does_not_forward_accumulated_sse_events():
+    """场景 2b：on_chain_end 不转发 state 累计的 sse_events。
+
+    各节点产生事件时已通过 _emit/push_sse_event 实时推送；state.sse_events
+    是历史累计值，在每个节点结束时转发会把同一事件投递 O(节点数) 次。
+    """
     from leader import SSEStreamer
     streamer = SSEStreamer(session_id=1)
     event = {
@@ -123,10 +127,7 @@ def test_on_chain_end_with_sse_events():
     }
     sse_events = streamer.langgraph_event_to_sse(event)
 
-    assert len(sse_events) == 1
-    assert sse_events[0]["type"] == "assessment_result"
-    assert sse_events[0]["score"] == 85
-    assert sse_events[0]["session_id"] == 1
+    assert sse_events == []
 
 
 def test_on_chain_end_without_sse_events():

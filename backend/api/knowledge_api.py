@@ -16,6 +16,11 @@ FastAPI Knowledge API 路由模块
 - DELETE /admin/categories/{id} - 删除分类
 
 保留后台 OCR 任务（ThreadPoolExecutor）。
+
+注意：/admin/categories 系列端点虽挂在 /admin/ 路径下，但并非管理员专属，
+而是登录用户的「分类管理」入口（强制 user_id=当前用户、只允许操作个人分类）。
+它们不走 get_admin_user 是有意为之；若要新增全局/共享分类变更能力，
+请新建端点并显式加管理员依赖，勿直接放开本组端点。
 """
 import functools
 import logging
@@ -684,8 +689,24 @@ async def upload_document(
                 detail={'error': 'Invalid category', 'message': f'category must be one of: {", ".join(sorted(valid_keys))}'}
             )
 
-        # 读取文件内容
-        file_content = await file.read()
+        # 流式分块读取：累计大小超限立即中止，防止超大请求整体载入内存（OOM），
+        # 与 files.py 上传端点保持同一防护模式
+        from utils.upload_validator import MAX_UPLOAD_SIZE
+        _CHUNK_SIZE = 1024 * 1024  # 1MB
+        _chunks = []
+        streamed_size = 0
+        while True:
+            chunk = await file.read(_CHUNK_SIZE)
+            if not chunk:
+                break
+            streamed_size += len(chunk)
+            if streamed_size > MAX_UPLOAD_SIZE:
+                raise HTTPException(
+                    status_code=413,
+                    detail={'error': 'File too large', 'message': f'文件过大。最大允许 {MAX_UPLOAD_SIZE // (1024 * 1024)}MB'}
+                )
+            _chunks.append(chunk)
+        file_content = b''.join(_chunks)
         check_duplicate = allow_duplicate.lower() != 'true'
 
         # 使用 upload_validator 进行完整校验（传入 bytes）
@@ -693,7 +714,8 @@ async def upload_document(
             file_content,
             file.filename,
             check_duplicate=check_duplicate,
-            db_session=db_session
+            db_session=db_session,
+            user_id=user_id
         )
 
         if not result.valid:
@@ -817,16 +839,10 @@ async def delete_document(
 
         logger.info(f'Document deleted: id={doc_id}')
 
-        # 重建用户图谱（删除后需更新该用户图谱）
-        try:
-            from services.graphify_extractor import GraphifyExtractor
-            GraphifyExtractor(db_session).rebuild_user_graph(user_id)
-            # 清除 GraphRAG 缓存（图谱文件已变更）
-            from services.graph_rag_service import GraphRAGService
-            GraphRAGService.get_instance().clear_user_cache(user_id)
-            logger.info(f'User graph rebuilt after document deletion: user_id={user_id}')
-        except Exception as e:
-            logger.warning(f'Failed to rebuild user graph after deletion: {e}')
+        # 重建用户图谱（删除后需更新该用户图谱）。
+        # rebuild 含全量文件扫描与潜在同步 LLM 调用，提交到后台线程执行，
+        # 避免在 async 端点内联运行冻结事件循环（与上传路径的 OCR/graphify 同模式）
+        _background_executor.submit(_rebuild_user_graph_task, user_id)
 
         return None
 
@@ -882,6 +898,24 @@ async def refresh_index(
             status_code=500,
             detail={'error': 'Failed to refresh index', 'message': 'An internal error occurred'}
         )
+
+
+def _rebuild_user_graph_task(user_id: int):
+    """后台重建用户图谱：删除文档后重新合并剩余文档图谱并同步向量"""
+    from db import get_db_session
+    from services.graphify_extractor import GraphifyExtractor
+
+    bg_db = get_db_session()
+    try:
+        GraphifyExtractor(bg_db).rebuild_user_graph(user_id)
+        # 清除 GraphRAG 缓存（图谱文件已变更）
+        from services.graph_rag_service import GraphRAGService
+        GraphRAGService.get_instance().clear_user_cache(user_id)
+        logger.info(f'User graph rebuilt after document deletion: user_id={user_id}')
+    except Exception:
+        logger.exception(f'Failed to rebuild user graph after deletion: user_id={user_id}')
+    finally:
+        bg_db.close()
 
 
 def _translate_user_graph_task(user_id: int):

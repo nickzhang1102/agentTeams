@@ -174,8 +174,9 @@ export const useLeaderStore = defineStore('leader', () => {
     // 每秒更新一次
     sessionTimer.value = setInterval(() => {
       if (sessionStartTime.value) {
-        // 【FIX】改为秒，避免单位混用导致显示偏大 1000 倍
-        totalTime.value = Math.floor((Date.now() - sessionStartTime.value) / 1000)
+        // 统一约定：totalTime 一律为毫秒（消费端 formattedTime 再 /1000，
+        // 分享/嵌入恢复路径也产毫秒；此前此处置秒导致属主视图显示 0秒）
+        totalTime.value = Math.max(0, Date.now() - sessionStartTime.value)
       }
     }, 1000)
   }
@@ -266,6 +267,8 @@ export const useLeaderStore = defineStore('leader', () => {
       const totalTimer = setTimeout(() => {
         if (!execution.isCurrent()) return
         console.error('[SSE] Stream total timeout (60 minutes)')
+        // 先中止底层流：否则迟到的 SSE 事件会在 failed 态后继续到达并翻转状态
+        execution.controller.abort()
         handleError({ message: leaderText('requestTimeout') })
       }, LEADER_STREAM_TIMEOUT)
 
@@ -340,6 +343,8 @@ export const useLeaderStore = defineStore('leader', () => {
       const totalTimer = setTimeout(() => {
         if (!execution.isCurrent()) return
         console.error('[SSE] Template stream total timeout (60 minutes)')
+        // 先中止底层流：否则迟到的 SSE 事件会在 failed 态后继续到达并翻转状态
+        execution.controller.abort()
         handleError({ message: leaderText('requestTimeout') })
       }, LEADER_STREAM_TIMEOUT)
 
@@ -963,7 +968,7 @@ export const useLeaderStore = defineStore('leader', () => {
           rating_updated_at: data.rating_updated_at || null
         }
       : data.report || ''
-    totalTime.value = data.total_time || 0
+    totalTime.value = (data.total_time || 0) * 1000
     // 停止请求触发的最终报告（跳过 LLM 生成）应显示为"已停止"，而非"已完成"
     leaderState.value = data.quality_status === 'stopped' ? 'stopped' : 'completed'
 
@@ -1562,7 +1567,7 @@ export const useLeaderStore = defineStore('leader', () => {
       currentSession.value = { id: latestSession.id }
       // 历史会话：如果已完成，状态设为 idle，避免阻塞 UI
       leaderState.value = latestSession.state === 'completed' ? 'idle' : latestSession.state
-      totalTime.value = latestSession.total_time || 0
+      totalTime.value = (latestSession.total_time || 0) * 1000
 
       // 恢复评估详情（历史模式下不设置 thinkingContent，避免重复）
       // thinkingContent 会触发 LeaderThinking 的 watch，导致重复添加

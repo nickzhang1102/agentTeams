@@ -11,6 +11,7 @@
 
 # 工作区状态目录
 /.jspace/
+/backend/.jspace/
 
 # 内部治理与规划文档（不随开源公开）
 /.codestable/

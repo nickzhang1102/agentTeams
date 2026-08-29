@@ -23,6 +23,24 @@ class WorkflowTemplateService:
     def __init__(self, db: Session):
         self.db = db
 
+    def _validate_pack_visibility(self, pack_id: Optional[int], user_id: int, is_admin: bool = False) -> None:
+        """校验模板引用的 AgentPack 对该用户可见（与 AgentPackService.get_pack 同规则）。
+
+        模板序列化会暴露 pack 的 agents 构成，apply 也会用这些 Agent 启动工作流；
+        若不校验，用户可引用他人私有 pack 读取其配置并借道启动，绕过 pack 归属模型。
+
+        Raises:
+            ValueError: pack 不存在或对当前用户不可见。
+        """
+        if not pack_id:
+            return
+        pack = self.db.get(AgentPack, pack_id)
+        if not pack:
+            raise ValueError(f'引用的组合包不存在: pack_id={pack_id}')
+        if is_admin or pack.is_system or pack.creator_id == user_id:
+            return
+        raise ValueError(f'无权引用该组合包: pack_id={pack_id}')
+
     def serialize_templates(
         self,
         templates: List[WorkflowTemplate],
@@ -113,12 +131,17 @@ class WorkflowTemplateService:
         assessment_threshold: int = 60,
         system_prompt_addition: Optional[str] = None,
         is_system: bool = False,
+        is_admin: bool = False,
     ) -> WorkflowTemplate:
         # 系统模板应用层查重（DB unique constraint 对 NULL creator_id 无效）
         if is_system:
             existing = self.db.query(WorkflowTemplate).filter_by(name=name, is_system=True).first()
             if existing:
                 raise ValueError(f'系统预设模板 "{name}" 已存在')
+
+        # pack 引用必须对创建者可见（系统预设校验交由 seed 流程的 pack 可见性，不在此拦截）；
+        # is_admin 语义与 update_template 一致：管理员可引用任意 pack
+        self._validate_pack_visibility(pack_id, user_id, is_admin=is_admin)
 
         template = WorkflowTemplate(
             name=name,
@@ -191,6 +214,9 @@ class WorkflowTemplateService:
             raise PermissionError('系统预设模板不可修改')
         if not is_admin and template.creator_id != user_id:
             raise PermissionError('无权修改此模板')
+
+        # pack 引用变更必须对操作者可见
+        self._validate_pack_visibility(kwargs.get('pack_id'), user_id, is_admin=is_admin)
 
         for key in ('name', 'description', 'category', 'pack_id', 'agents',
                      'skip_assessment', 'assessment_threshold', 'system_prompt_addition'):

@@ -298,6 +298,9 @@ class BatchExecutor:
             llm_service=self._llm_service,
             user_id=user_id,
             locale=self._locale,
+            # 恢复工具调用事件链路：ToolCallLog 持久化 + tool_call_* SSE
+            # （此前 event_callback 传入编排路径后从未被使用）
+            tool_event_callback=event_callback,
         )
 
         # 前置校验：过滤未注册的 Agent

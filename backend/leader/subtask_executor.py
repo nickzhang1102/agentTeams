@@ -16,7 +16,7 @@ import fnmatch
 import hashlib
 import time
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+from typing import Callable, Dict, List, Any, Optional
 
 from schemas.leader import ReportEvidence
 
@@ -63,6 +63,7 @@ class SubTaskExecutor:
         user_id: Optional[int] = None,
         allowed_tools: Optional[List[str]] = None,
         locale: str = "zh-CN",
+        tool_event_callback: Optional[Callable] = None,
     ):
         """初始化子任务执行器
 
@@ -73,6 +74,8 @@ class SubTaskExecutor:
             tool_max_retries: 工具失败重试次数
             user_id: 用户 ID（注入工具执行上下文）
             allowed_tools: Agent 工具白名单；None 表示未提供策略，空列表表示禁止外部工具
+            tool_event_callback: 工具调用事件回调（started/completed），
+                用于恢复 ToolCallLog 持久化与 tool_call_* SSE 事件
         """
         self._tool_registry = tool_registry
         self._llm_service = llm_service
@@ -81,6 +84,37 @@ class SubTaskExecutor:
         self._user_id = user_id
         self._allowed_tools = list(allowed_tools) if allowed_tools is not None else None
         self._locale = resolve_generation_locale(explicit_locale=locale)
+        self._tool_event_callback = tool_event_callback
+
+    def _fire_tool_event(
+        self,
+        event_type: str,
+        agent_name: Optional[str],
+        tool_name: str,
+        tool_input=None,
+        output_summary=None,
+        is_error: bool = False,
+    ) -> None:
+        """触发工具调用事件回调（线程池 worker 中调用；回调自身需线程安全）。"""
+        callback = self._tool_event_callback
+        if callback is None:
+            return
+        # 与 execution_nodes._on_agent_event 的 DB 侧 [:500] 截断对齐，
+        # 避免大输出工具把整段结果塞进 SSE 事件
+        if output_summary:
+            output_summary = str(output_summary)[:500]
+        try:
+            callback({
+                "type": event_type,
+                "agent_id": agent_name,
+                "agent_name": agent_name,
+                "tool_name": tool_name,
+                "tool_input": tool_input,
+                "tool_output_summary": output_summary,
+                "is_error": is_error,
+            })
+        except Exception:
+            logger.debug("tool_event_callback error", exc_info=True)
 
     def set_tool_registry(self, tool_registry):
         """注入 Tool Registry（延迟注入）"""
@@ -157,9 +191,11 @@ class SubTaskExecutor:
                     continue
 
                 # 推送 SSE subtool_call
+                tool_input = self._build_tool_input(subtask, task_context, tool_name, session_id=session_id, agent_id=agent_name)
                 if runtime:
-                    tool_input = self._build_tool_input(subtask, task_context, tool_name, session_id=session_id, agent_id=agent_name)
                     runtime.emit_subtool_call(subtask_id, tool_name, tool_input)
+
+                self._fire_tool_event("tool_call_started", agent_name, tool_name, tool_input=tool_input)
 
                 # 执行工具（含重试）
                 result = self._execute_single_tool_with_retry(
@@ -169,6 +205,14 @@ class SubTaskExecutor:
                     session_id=session_id,
                     agent_id=agent_name,
                     allowed_tools=allowed_tools,
+                )
+
+                self._fire_tool_event(
+                    "tool_call_completed",
+                    agent_name,
+                    tool_name,
+                    output_summary=str(result.get("result", "")) if result.get("success") else None,
+                    is_error=not result.get("success"),
                 )
                 self._attach_evidence(subtask, result, tool_name)
                 results.append(result)

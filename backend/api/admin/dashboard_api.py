@@ -204,7 +204,7 @@ def _load_target_breakdown_counts(db_session: Session, start_date: datetime) -> 
 def get_dashboard_stats(db_session: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
     """获取Dashboard统计数据"""
     try:
-        today = datetime.now(timezone.utc).date()
+        today = utcnow_naive().date()
         today_start = datetime.combine(today, datetime.min.time())
 
         total_users = db_session.query(User).count()

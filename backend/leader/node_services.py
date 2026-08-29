@@ -68,13 +68,18 @@ def should_stop_workflow(state) -> bool:
     session_id = state.get("session_id")
     if not session_id:
         return False
-    svc = get_services()
-    db = svc.db_session
-    if db is None:
-        return False
     try:
         from .leader_persistence import is_session_stop_requested
-        return is_session_stop_requested(db, session_id)
+        from db import get_db_session
+
+        # 该检查还会经 BatchExecutor.stop_checker 从线程池 worker 并发触发：
+        # NodeServices.db_session 是请求线程的 Session，跨线程复用既非线程安全，
+        # 又会让事务悬挂占住连接池。这里始终用短命只读会话，用完即关。
+        db = get_db_session()
+        try:
+            return is_session_stop_requested(db, session_id)
+        finally:
+            db.close()
     except Exception:
         logger.exception("should_stop_workflow: DB 检查失败，按未停止处理")
         return False

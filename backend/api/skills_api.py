@@ -82,6 +82,33 @@ async def get_skills(
         }
 
 
+# 注意：/active 必须注册在 /{skill_id} 之前，否则会被路径参数路由吞掉
+# （Starlette 按注册顺序匹配，"active" 会被当作 skill_id 查询后返回 404 语义）。
+
+@router.get("/active", response_model=ActiveSkillsResponse)
+async def get_active_skills(
+    user = Depends(get_current_user)
+):
+    """获取当前激活的技能"""
+    try:
+        manager = get_skills_manager()
+
+        return {
+            "success": True,
+            "active_skills": [s.to_dict() for s in manager.get_active_skills()],
+            "active_tools": manager.get_active_tools(),
+            "system_prompt_enhancement": manager.build_system_prompt_enhancement()
+        }
+    except Exception as e:
+        logger.error(f"Get active skills failed: {e}", exc_info=True)
+        return {
+            "success": False,
+            "active_skills": [],
+            "active_tools": [],
+            "system_prompt_enhancement": ""
+        }
+
+
 @router.get("/{skill_id}", response_model=SkillDetailResponse)
 async def get_skill(
     skill_id: str,
@@ -168,30 +195,6 @@ async def deactivate_skill(
             "success": False,
             "active_skills": [],
             "active_tools": []
-        }
-
-
-@router.get("/active", response_model=ActiveSkillsResponse)
-async def get_active_skills(
-    user = Depends(get_current_user)
-):
-    """获取当前激活的技能"""
-    try:
-        manager = get_skills_manager()
-
-        return {
-            "success": True,
-            "active_skills": [s.to_dict() for s in manager.get_active_skills()],
-            "active_tools": manager.get_active_tools(),
-            "system_prompt_enhancement": manager.build_system_prompt_enhancement()
-        }
-    except Exception as e:
-        logger.error(f"Get active skills failed: {e}", exc_info=True)
-        return {
-            "success": False,
-            "active_skills": [],
-            "active_tools": [],
-            "system_prompt_enhancement": ""
         }
 
 
